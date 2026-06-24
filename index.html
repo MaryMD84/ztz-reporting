@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Zip To Zip Moving — Reporting Platform</title>
+<link rel="stylesheet" href="assets/theme.css"/>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">
+        <div class="mark">ZZ</div>
+        <div>
+          <div class="name" id="bName">Zip To Zip Moving</div>
+          <div class="product" id="bProduct">Reporting Platform</div>
+        </div>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot" id="foot"></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <div class="tt" id="tt">Executive Overview</div>
+        <div class="ts" id="ts"></div>
+      </div>
+      <div class="spacer"></div>
+      <span id="livectl"></span>
+      <span id="badge"></span>
+    </header>
+    <div id="filterbar"></div>
+    <div class="content" id="content">
+      <section class="view active" id="view-overview"></section>
+      <section class="view" id="view-operations"></section>
+      <section class="view" id="view-sources"></section>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Data layer (generated / connected) ===== -->
+<script src="data/sources.js"></script>
+<script src="data/summary.js"></script>
+<script src="data/bookings.js"></script>
+<!-- ===== Configuration registry ===== -->
+<script src="assets/config.js"></script>
+<!-- ===== Live data layer (Google OAuth — active when published to https) ===== -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="assets/live-config.js"></script>
+<script src="assets/live-data.js"></script>
+<!-- ===== Shell ===== -->
+<script>
+(function(){
+  "use strict";
+  var CFG=window.ZTZ_CONFIG, D=window.ZTZ_DATA||{};
+  var B=D.bookings||[], M=D.bookingsMeta||{}, S=D.summary||{}, SRC=D.sources||[];
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var el=function(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+  var nf=new Intl.NumberFormat('en-US');
+  function num(n){return nf.format(Math.round(n||0))}
+  function money(n){return '$'+nf.format(Math.round(n||0))}
+  function moneyK(n){n=n||0;return n>=1000?'$'+(n/1000).toFixed(n>=100000?0:1)+'K':'$'+Math.round(n)}
+  function pct(n){return (Math.round((n||0)*10)/10)+'%'}
+  function cap(s){return (s||'').charAt(0).toUpperCase()+(s||'').slice(1)}
+  function store(k,v){try{if(v===undefined)return localStorage.getItem('ztz_'+k);localStorage.setItem('ztz_'+k,v)}catch(e){return null}}
+
+  /* ---------- chart helpers ---------- */
+  function bars(items,opts){opts=opts||{};var max=Math.max.apply(null,items.map(function(x){return x[1]}).concat([1]));
+    var cls=opts.cls||'';var fmt=opts.fmt||num;
+    return '<div class="bars">'+items.map(function(x){
+      var w=Math.max(2,Math.round(100*x[1]/max));
+      return '<div class="bar '+cls+'"><div class="bn" title="'+x[0]+'">'+x[0]+'</div>'+
+        '<div class="bt"><div class="bf" style="width:'+w+'%"></div></div>'+
+        '<div class="bv">'+fmt(x[1])+'</div></div>';
+    }).join('')+'</div>';}
+
+  function colChart(byDay,key,color){
+    var days=Object.keys(byDay);var vals=days.map(function(d){return byDay[d][key]||0});
+    var max=Math.max.apply(null,vals.concat([1]));
+    var W=Math.max(420,days.length*64),H=150,pad=24,bw=Math.min(40,(W-pad*2)/days.length-12);
+    var x0=pad,gap=(W-pad*2)/days.length;
+    var bars=days.map(function(d,i){
+      var v=byDay[d][key]||0;var h=Math.round((H-pad-18)*v/max);
+      var x=x0+i*gap+(gap-bw)/2;var y=H-18-h;
+      var lab=d.slice(5);
+      return '<g><rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+h+'" rx="4" fill="'+color+'"></rect>'+
+        '<text x="'+(x+bw/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="10" fill="#64748b">'+lab+'</text>'+
+        '<text x="'+(x+bw/2)+'" y="'+(y-4)+'" text-anchor="middle" font-size="9.5" fill="#0f172a" font-weight="600">'+(key==='cash'?moneyK(v):num(v))+'</text></g>';
+    }).join('');
+    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMinYMid meet">'+bars+'</svg>';
+  }
+
+  function donut(items,colors){
+    var total=items.reduce(function(a,x){return a+x[1]},0)||1;var off=0,R=52,C=2*Math.PI*R;
+    var segs=items.map(function(x,i){
+      var frac=x[1]/total;var dash=frac*C;
+      var s='<circle r="'+R+'" cx="70" cy="70" fill="none" stroke="'+colors[i%colors.length]+'" stroke-width="20" '+
+        'stroke-dasharray="'+dash+' '+(C-dash)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 70 70)"></circle>';
+      off+=dash;return s;}).join('');
+    var leg='<div class="legend">'+items.map(function(x,i){
+      return '<div class="li"><span class="sw" style="background:'+colors[i%colors.length]+'"></span>'+
+        '<span class="ln">'+x[0]+'</span><span class="lv">'+num(x[1])+' · '+pct(100*x[1]/total)+'</span></div>';
+    }).join('')+'</div>';
+    return '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">'+
+      '<svg viewBox="0 0 140 140" width="140" height="140">'+segs+
+      '<text x="70" y="66" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">'+num(total)+'</text>'+
+      '<text x="70" y="84" text-anchor="middle" font-size="10" fill="#64748b">jobs</text></svg>'+
+      '<div style="flex:1;min-width:180px">'+leg+'</div></div>';
+  }
+  var PAL=['#1a56a4','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#dc2626','#65a30d','#0ea5e9','#9333ea','#475569','#f59e0b'];
+
+  /* ---------- KPI helpers ---------- */
+  function kpi(label,val,sub,cls){return '<div class="kpi '+(cls||'')+'"><div class="kl">'+label+'</div>'+
+    '<div class="kv">'+val+'</div>'+(sub?'<div class="ks">'+sub+'</div>':'')+'</div>';}
+  function secH(t,sub){return '<div class="sec-h"><h2>'+t+'</h2>'+(sub?'<span class="sub">'+sub+'</span>':'')+'<span class="ln"></span></div>';}
+  function linkTo(id,txt){return '<button class="linkbtn" data-go="'+id+'">'+(txt||'Open')+' →</button>';}
+
+  /* ====================================================================
+     EXECUTIVE OVERVIEW
+     ==================================================================== */
+  function renderOverview(){
+    var v=$('#view-overview');
+    var topSrc=Object.keys(M.by_source||{}).slice(0,7).map(function(k){return [k,M.by_source[k]]});
+    var leadsTotal=(S.leads&&S.leads.total_leads)||0;
+    var q=S.quality||{},c=S.calls||{},co=S.comms||{},le=S.leads||{};
+    var html='';
+    // Live booked-jobs band
+    html+=secH('Live — Booked Jobs','from the Booked Jobs calendar · '+(M.window_start||'')+' → '+(M.window_end||''));
+    html+='<div class="kpis">'+
+      kpi('Booked Jobs',num(M.jobs),'in current window','k-teal')+
+      kpi('Pipeline Revenue',moneyK(M.cash_total),'cash · '+moneyK(M.card_total)+' card','k-green')+
+      kpi('Total Volume',num(M.cf_total)+' CF','avg '+num(M.avg_cf)+' CF / job','')+
+      kpi('Today',num(M.today_jobs)+' jobs',moneyK(M.today_cash)+' · '+num(M.today_cf)+' CF','k-purple')+
+      '</div>';
+    html+='<div class="grid g-12" style="margin-top:16px">'+
+      '<div class="card"><div class="card-h"><h3>Booked revenue by day (cash)</h3>'+linkTo('operations','Operations')+'</div>'+
+        colChart(M.by_day||{},'cash','#16a34a')+'</div>'+
+      '<div class="card"><h3>Booked jobs by source</h3><p class="hint">where confirmed business comes from</p>'+
+        bars(topSrc,{cls:'alt'})+'</div>'+
+      '</div>';
+    // Sales & leads snapshot
+    html+=secH('Sales & Leads','snapshot from analytical modules');
+    html+='<div class="kpis">'+
+      kpi('Total Leads',num(leadsTotal),le.leads_window||'','')+
+      kpi('CRM Records',num(le.crm_records),le.crm_window||'','')+
+      kpi('Calls Handled',num(c.total),pct(c.connect_rate_pct)+' connected · '+c.window,'k-teal')+
+      kpi('Bad-Lead Share',pct(q.bad_share_pct),num(q.bad_leads)+' bad leads · '+q.bad_window,'k-amber')+
+      '</div>';
+    html+='<div class="grid g-2" style="margin-top:16px">'+
+      '<div class="card"><div class="card-h"><h3>Why leads go bad</h3>'+linkTo('bad-leads','Bad-Lead Intel')+'</div>'+
+        bars(Object.keys(q.reasons||{}).map(function(k){return [k,q.reasons[k]]}),{cls:'warn'})+'</div>'+
+      '<div class="card"><div class="card-h"><h3>Communication coverage</h3>'+linkTo('communication','Communication')+'</div>'+
+        '<div class="kpis" style="grid-template-columns:repeat(2,1fr);gap:10px">'+
+          kpi('Never Emailed',num(co.never_emailed),'of '+num(co.crm_records)+' records','k-red')+
+          kpi('Avg Response',co.avg_response_h+'h','first outbound reply','')+
+          kpi('Confirmed at Risk',num(co.confirmed_at_risk),'no reply on booking','k-amber')+
+          kpi('Quotes — No Follow-Up',num(co.quotes_no_followup),'open revenue at risk','k-amber')+
+        '</div></div>'+
+      '</div>';
+    html+='<div class="note" style="margin-top:18px">Booked-jobs metrics are <b>live</b> from the calendar and refresh automatically. '+
+      'Leads, calls, quality and communication figures are the latest published by each module (sourced from Google Sheets) — open a module for full interactivity and filters.</div>';
+    v.innerHTML=html;
+  }
+
+  /* ====================================================================
+     OPERATIONS · BOOKED JOBS  (live, filterable)
+     ==================================================================== */
+  var opsState={rep:store('ops_rep')||'All',source:store('ops_source')||'All',day:'All'};
+  function opsReps(){var s={};B.forEach(function(r){s[r.rep]=1});return Object.keys(s).sort();}
+  function opsSources(){var s={};B.forEach(function(r){s[r.source]=1});return Object.keys(s).sort();}
+  function opsDays(){return Object.keys(M.by_day||{});}
+  function opsFiltered(){return B.filter(function(r){
+    return (opsState.rep==='All'||r.rep===opsState.rep)&&
+           (opsState.source==='All'||r.source===opsState.source)&&
+           (opsState.day==='All'||r.date===opsState.day);});}
+
+  function renderOpsFilterbar(){
+    var fb=$('#filterbar');
+    function opt(arr,sel){return ['All'].concat(arr).map(function(o){return '<option'+(o===sel?' selected':'')+'>'+o+'</option>'}).join('')}
+    fb.innerHTML='<span class="fl">Filter</span>'+
+      '<select class="ctrl" id="opsRep"><option value="All">All reps</option>'+opsReps().map(function(o){return '<option'+(o===opsState.rep?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'+
+      '<select class="ctrl" id="opsSource"><option value="All">All sources</option>'+opsSources().map(function(o){return '<option'+(o===opsState.source?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'+
+      '<select class="ctrl" id="opsDay"><option value="All">All days</option>'+opsDays().map(function(o){return '<option'+(o===opsState.day?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'+
+      '<button class="chip ghost" id="opsReset">Reset</button>'+
+      '<span class="spacer" style="flex:1"></span>'+
+      '<span class="src-tag">🔌 Booked Jobs calendar · live</span>';
+    $('#opsRep').onchange=function(){opsState.rep=this.value;store('ops_rep',this.value);renderOperations(true)};
+    $('#opsSource').onchange=function(){opsState.source=this.value;store('ops_source',this.value);renderOperations(true)};
+    $('#opsDay').onchange=function(){opsState.day=this.value;renderOperations(true)};
+    $('#opsReset').onclick=function(){opsState={rep:'All',source:'All',day:'All'};store('ops_rep','All');store('ops_source','All');renderOperations(true)};
+  }
+
+  function renderOperations(keepBar){
+    if(!keepBar) renderOpsFilterbar();
+    var rows=opsFiltered();
+    var cash=0,card=0,cf=0,inter=0;
+    rows.forEach(function(r){cash+=r.cash_total||0;card+=r.card_total||0;cf+=r.cf||0;if(r.interstate)inter++;});
+    var n=rows.length||1;
+    // group helpers on filtered set
+    function grp(key){var m={};rows.forEach(function(r){var k=r[key]||'—';m[k]=(m[k]||0)+1});
+      return Object.keys(m).map(function(k){return [k,m[k]]}).sort(function(a,b){return b[1]-a[1]});}
+    function grpRev(key){var m={};rows.forEach(function(r){var k=r[key]||'—';m[k]=(m[k]||0)+(r.cash_total||0)});
+      return Object.keys(m).map(function(k){return [k,m[k]]}).sort(function(a,b){return b[1]-a[1]});}
+    var byDayF={};rows.forEach(function(r){var b=byDayF[r.date]||(byDayF[r.date]={jobs:0,cf:0,cash:0,card:0});b.jobs++;b.cf+=r.cf||0;b.cash+=r.cash_total||0;});
+
+    var v=$('#view-operations');var html='';
+    html+='<div class="kpis">'+
+      kpi('Jobs',num(rows.length),(opsState.day==='All'?'across '+opsDays().length+' days':opsState.day),'k-teal')+
+      kpi('Booked Revenue',moneyK(cash),'cash · '+moneyK(card)+' card','k-green')+
+      kpi('Avg Job Value',money(cash/n),'cash basis','')+
+      kpi('Volume',num(cf)+' CF','avg '+num(cf/n)+' CF / job','k-purple')+
+      kpi('Interstate',pct(100*inter/n),inter+' of '+rows.length+' moves','k-amber')+
+      '</div>';
+    html+='<div class="grid g-12" style="margin-top:16px">'+
+      '<div class="card"><h3>Booked revenue by day (cash)</h3><p class="hint">confirmed move value scheduled per day</p>'+
+        colChart(byDayF,'cash','#1a56a4')+'</div>'+
+      '<div class="card"><h3>Source mix</h3><p class="hint">filtered booked jobs</p>'+donut(grp('source').slice(0,7),PAL)+'</div>'+
+      '</div>';
+    html+='<div class="grid g-2" style="margin-top:16px">'+
+      '<div class="card"><h3>Top routes</h3><p class="hint">origin → destination state</p>'+bars(grp('route').slice(0,8))+'</div>'+
+      '<div class="card"><h3>Revenue by sales rep</h3><p class="hint">cash basis, filtered</p>'+bars(grpRev('rep').slice(0,10),{cls:'alt',fmt:moneyK})+'</div>'+
+      '</div>';
+    // table
+    var trows=rows.slice(0,80).map(function(r){
+      var st=(r.status==='confirmed')?'<span class="pill g">confirmed</span>':'<span class="pill">'+(r.status||'—')+'</span>';
+      return '<tr><td>'+r.date+(r.time?' <span class="muted">'+r.time+'</span>':'')+'</td>'+
+        '<td>'+(r.customer||'—')+'</td>'+
+        '<td><span class="pill'+(r.interstate?' a':'')+'">'+r.route+'</span></td>'+
+        '<td>'+r.rep+'</td><td>'+r.source+'</td>'+
+        '<td class="num">'+(r.cf?num(r.cf):'—')+'</td>'+
+        '<td class="num">'+(r.crew?r.crew:'—')+'</td>'+
+        '<td class="num">'+(r.cash_total?money(r.cash_total):'—')+'</td>'+
+        '<td>'+st+'</td></tr>';
+    }).join('');
+    html+='<div class="card" style="margin-top:16px"><div class="card-h"><h3>Booked jobs</h3>'+
+      '<span class="src-tag">showing '+Math.min(80,rows.length)+' of '+rows.length+'</span></div>'+
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+      '<th>Date</th><th>Customer</th><th>Route</th><th>Sales Rep</th><th>Source</th><th class="num">CF</th><th class="num">Crew</th><th class="num">Cash Total</th><th>Status</th>'+
+      '</tr></thead><tbody>'+(trows||'<tr><td colspan="9" class="muted">No jobs match the filters.</td></tr>')+'</tbody></table></div></div>';
+    v.innerHTML=html;
+  }
+
+  /* ====================================================================
+     DATA SOURCES
+     ==================================================================== */
+  function renderSources(){
+    var v=$('#view-sources');
+    var pillFor={connected:'<span class="pill g">connected</span>',live:'<span class="pill g">live</span>',available:'<span class="pill a">available</span>'};
+    var rows=SRC.map(function(s){
+      return '<tr><td><b>'+s.name+'</b></td><td>'+s.type+'</td><td>'+s.system+'</td>'+
+        '<td>'+(s.feeds||[]).join(', ')+'</td><td><span class="muted">'+s.grain+'</span></td>'+
+        '<td>'+(pillFor[s.status]||s.status)+'</td></tr>';
+    }).join('');
+    v.innerHTML=secH('Connected Data Sources','everything feeding the platform')+
+      '<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+      '<th>Source</th><th>Type</th><th>System</th><th>Feeds</th><th>Grain</th><th>Status</th></tr></thead><tbody>'+
+      rows+'</tbody></table></div></div>'+
+      '<div class="grid g-2" style="margin-top:16px">'+
+      '<div class="card"><h3>How data flows</h3><p class="hint">connector → shared data layer → reports</p>'+
+        '<div class="bars">'+
+        '<div class="bar"><div class="bn">Google Sheets</div><div class="bt"><div class="bf" style="width:80%"></div></div><div class="bv">4</div></div>'+
+        '<div class="bar alt"><div class="bn">Google Calendar</div><div class="bt"><div class="bf" style="width:20%"></div></div><div class="bv">1</div></div>'+
+        '</div>'+
+        '<p class="note" style="margin-top:14px">Sheets &amp; Calendar are pulled through Claude\'s connectors into <code>data/*.js</code>. '+
+        'Booked Jobs refreshes on a schedule; sheet-backed modules refresh when their export is re-published. '+
+        'Your source sheets stay private — nothing is exposed to the browser.</p></div>'+
+      '<div class="card"><h3>Add a new source or report</h3>'+
+        '<p class="hint">the platform is built to grow</p>'+
+        '<ol class="small" style="color:#475569;line-height:1.7;padding-left:18px;margin:0">'+
+        '<li>Add the source to <code>data/sources.js</code>.</li>'+
+        '<li>Drop its data into <code>data/&lt;name&gt;.js</code> (or a new <code>modules/&lt;name&gt;.html</code>).</li>'+
+        '<li>Register one entry in <code>assets/config.js</code>.</li>'+
+        '<li>It appears in the sidebar automatically — no shell changes.</li></ol></div>'+
+      '</div>';
+  }
+
+  /* ====================================================================
+     NAV + ROUTING
+     ==================================================================== */
+  var iframeViews={};
+  var currentId='overview';
+  function buildNav(){
+    $('#bName').textContent=CFG.brand.name; $('#bProduct').textContent=CFG.brand.product;
+    var nav=$('#nav');var groups=[];var seen={};
+    CFG.sections.forEach(function(s){if(!seen[s.group]){seen[s.group]=1;groups.push(s.group)}});
+    groups.forEach(function(g){
+      nav.appendChild(el('div','nav-group',g));
+      CFG.sections.filter(function(s){return s.group===g}).forEach(function(s){
+        var item=el('div','nav-item');item.dataset.id=s.id;
+        item.innerHTML='<span class="ic">'+s.icon+'</span><span class="lbl">'+s.title+'</span>'+(s.live?'<span class="dot" title="live"></span>':'');
+        item.onclick=function(){go(s.id)};
+        nav.appendChild(item);
+        // pre-create iframe containers (lazy src)
+        if(s.type==='iframe'){
+          var fv=el('div','viewframe');fv.id='frame-'+s.id;
+          var ifr=document.createElement('iframe');ifr.dataset.src=s.file;ifr.loading='lazy';ifr.title=s.title;
+          fv.appendChild(ifr);$('#content').appendChild(fv);iframeViews[s.id]={wrap:fv,ifr:ifr,loaded:false};
+        }
+      });
+    });
+    $('#foot').innerHTML='<div class="rf">Booked-jobs data</div><b>'+( (M.generated||'').replace('T',' ').slice(0,16) )+'</b>';
+  }
+
+  function setBadge(s){
+    var b=$('#badge');
+    if(s.live){b.className='badge live';b.innerHTML='<span class="pulse"></span> Live';}
+    else if(s.type==='iframe'){b.className='badge snap';b.innerHTML='Module · '+(s.source||'snapshot');}
+    else{b.className='badge snap';b.innerHTML='Snapshot + live';}
+  }
+
+  function go(id){
+    var s=null;CFG.sections.forEach(function(x){if(x.id===id)s=x});if(!s){id=CFG.sections[0].id;s=CFG.sections[0];}
+    currentId=id;
+    // nav active
+    Array.prototype.forEach.call(document.querySelectorAll('.nav-item'),function(n){n.classList.toggle('active',n.dataset.id===id)});
+    // hide all views
+    Array.prototype.forEach.call(document.querySelectorAll('.view'),function(x){x.classList.remove('active')});
+    Array.prototype.forEach.call(document.querySelectorAll('.viewframe'),function(x){x.classList.remove('active')});
+    // filter bar only for operations
+    $('#filterbar').style.display=(id==='operations')?'flex':'none';
+    // topbar
+    $('#tt').textContent=s.title; $('#ts').textContent=s.desc||''; setBadge(s);
+    // route
+    if(s.type==='native'){
+      var nv=$('#view-'+id); if(nv){nv.classList.add('active');}
+      if(id==='overview')renderOverview();
+      else if(id==='operations')renderOperations(false);
+      else if(id==='sources')renderSources();
+    } else {
+      var iv=iframeViews[id];
+      if(iv){ if(!iv.loaded){iv.ifr.src=iv.ifr.dataset.src;iv.loaded=true;} iv.wrap.classList.add('active'); }
+    }
+    if(location.hash!=='#'+id){history.replaceState(null,'','#'+id);}
+    document.title='ZTZ · '+s.title;
+  }
+
+  // delegate link buttons inside native views
+  document.addEventListener('click',function(e){var t=e.target.closest('[data-go]');if(t){go(t.getAttribute('data-go'));}});
+
+  // Hooks for the live-data layer (OAuth). It swaps in fresh bookings then asks the
+  // shell to re-render whatever view is open. Falls back silently to the snapshot.
+  window.ZTZ_SHELL={
+    setBookings:function(rows,meta){ if(rows&&rows.length){B=rows;M=meta;D.bookings=rows;D.bookingsMeta=meta;} },
+    rerender:function(){ if(currentId==='overview')renderOverview(); else if(currentId==='operations')renderOperations(false);
+      $('#foot').innerHTML='<div class="rf">Booked-jobs data</div><b>'+((M.generated||'').replace('T',' ').slice(0,16))+'</b>'; },
+    current:function(){return currentId;}
+  };
+
+  // init
+  buildNav();
+  var start=(location.hash||'').replace('#','');
+  go(start|| 'overview');
+  window.addEventListener('hashchange',function(){var id=(location.hash||'').replace('#','');if(id)go(id);});
+  if(window.ZTZ_LIVE&&window.ZTZ_LIVE.init){try{window.ZTZ_LIVE.init();}catch(e){}}
+})();
+</script>
+</body>
+</html>
