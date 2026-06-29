@@ -49,6 +49,8 @@
 <script src="assets/config.js"></script>
 <!-- ===== Live data layer (Google OAuth — active when published to https) ===== -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- ===== Live BRIDGE: company sign-in gate + read-only data client ===== -->
+<script src="assets/bridge.js"></script>
 <script src="assets/live-config.js"></script>
 <script src="assets/live-data.js"></script>
 <!-- ===== Shell ===== -->
@@ -161,7 +163,8 @@
         '</div></div>'+
       '</div>';
     html+='<div class="note" style="margin-top:18px">Booked-jobs metrics are <b>live</b> from the calendar and refresh automatically. '+
-      'Leads, calls, quality and communication figures are the latest published by each module (sourced from Google Sheets) — open a module for full interactivity and filters.</div>';
+      'The headline lead, call and quality figures shown here are the last published snapshot; the modules themselves '+
+      '(Lead Distribution, MVD Analysis, Bad-Lead Intelligence) now read <b>live</b> from the bridge — open one for the current, filterable view.</div>';
     v.innerHTML=html;
   }
 
@@ -259,14 +262,16 @@
       '<th>Source</th><th>Type</th><th>System</th><th>Feeds</th><th>Grain</th><th>Status</th></tr></thead><tbody>'+
       rows+'</tbody></table></div></div>'+
       '<div class="grid g-2" style="margin-top:16px">'+
-      '<div class="card"><h3>How data flows</h3><p class="hint">connector → shared data layer → reports</p>'+
+      '<div class="card"><h3>How data flows</h3><p class="hint">live bridge → in-browser transforms → reports</p>'+
         '<div class="bars">'+
-        '<div class="bar"><div class="bn">Google Sheets</div><div class="bt"><div class="bf" style="width:80%"></div></div><div class="bv">4</div></div>'+
-        '<div class="bar alt"><div class="bn">Google Calendar</div><div class="bt"><div class="bf" style="width:20%"></div></div><div class="bv">1</div></div>'+
+        '<div class="bar"><div class="bn">Live bridge API</div><div class="bt"><div class="bf" style="width:75%"></div></div><div class="bv">3</div></div>'+
+        '<div class="bar alt"><div class="bn">Google Calendar</div><div class="bt"><div class="bf" style="width:25%"></div></div><div class="bv">1</div></div>'+
+        '<div class="bar"><div class="bn">Google Sheet (email)</div><div class="bt"><div class="bf" style="width:25%"></div></div><div class="bv">1</div></div>'+
         '</div>'+
-        '<p class="note" style="margin-top:14px">Sheets &amp; Calendar are pulled through Claude\'s connectors into <code>data/*.js</code>. '+
-        'Booked Jobs refreshes on a schedule; sheet-backed modules refresh when their export is re-published. '+
-        'Your source sheets stay private — nothing is exposed to the browser.</p></div>'+
+        '<p class="note" style="margin-top:14px">Moveboard &amp; RingCentral (calls/SMS) are read <b>live</b> from the centralized bridge API — '+
+        'a read-only, company-sign-in-gated endpoint that refreshes ~every 6&nbsp;hours — and transformed in the browser by '+
+        '<code>assets/ztz-transforms.js</code>. No spreadsheet copies to re-publish; nothing is cached. '+
+        'Booked Jobs is live from Calendar; the Email Tracker remains a Google Sheet.</p></div>'+
       '<div class="card"><h3>Add a new source or report</h3>'+
         '<p class="hint">the platform is built to grow</p>'+
         '<ol class="small" style="color:#475569;line-height:1.7;padding-left:18px;margin:0">'+
