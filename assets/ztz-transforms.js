@@ -881,6 +881,48 @@
   // official status category (Confirmed / Bad Lead / Incoming Lead); null if unmapped/not loaded
   function statusCategory(raw) { if (_TR.status) { var v = _TR.status[trKey(raw)]; if (v) return v; } return null; }
 
+  /* ==========================================================================
+     COMMUNICATION — live CRM (moveboard) matched to email events by address.
+     emailActivity rows: { r:rep, d:'O'|'I', dt:'YYYY-MM-DD', s:subject, e:email }
+     Returns { allLeads:[{r,s,c,m,e}], crmData:[{name,email,rep,status,flag,source,
+       moveDate,quoteDate,emailSent,firstEmail,lastEmail,numEmails,daysSince,followup,priority}] }
+     "sent" = outbound (d==='O'). Email side is a point-in-time snapshot; CRM side is live.
+     ========================================================================== */
+  function buildComms(moveRows, emailActivity) {
+    var idx = {};
+    (emailActivity || []).forEach(function (e) {
+      var addr = String(e.e || "").trim().toLowerCase(); if (!addr) return;
+      var a = idx[addr] || (idx[addr] = { sent: 0, recv: 0, dates: [] });
+      if (String(e.d).toUpperCase() === "O") { a.sent++; if (e.dt) a.dates.push(e.dt); }
+      else a.recv++;
+    });
+    function mdy(v) { var d = toDate(v); return d ? (("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+"/"+d.getFullYear()) : ""; }
+    var today = new Date(), CLOSED = ["Dead Lead", "Archive", "Cancelled", "Expired", "Spam"];
+    var allLeads = [], crmData = [];
+    (moveRows || []).forEach(function (r) {
+      var email = String(col(r, "email") || "").trim();
+      var status = String(col(r, "status") || "").trim();
+      var rep = canonRep(col(r, "rep"));
+      var cd = toDate(col(r, "create_date")), md = toDate(col(r, "move_date"));
+      var a = email ? idx[email.toLowerCase()] : null;
+      var num = a ? a.sent : 0;
+      var ds = a ? a.dates.slice().sort() : [];
+      var last = ds.length ? toDate(ds[ds.length - 1]) : null;
+      var daysSince = last ? Math.round((today - last) / 864e5) : null;
+      allLeads.push({ r: rep, s: status, c: mdy(cd), m: mdy(md), e: num });
+      crmData.push({
+        name: String(col(r, "customer") || "").trim(), email: email, rep: rep, status: status,
+        flag: String(col(r, "flag") || "").trim(), source: srcNorm(col(r, "source")),
+        moveDate: mdy(md), quoteDate: mdy(cd), emailSent: num > 0,
+        firstEmail: ds.length ? mdy(ds[0]) : "", lastEmail: last ? mdy(last) : "",
+        numEmails: num, daysSince: daysSince,
+        followup: num > 0 && daysSince != null && daysSince > 2 && CLOSED.indexOf(status) < 0,
+        priority: (num === 0 && ["Confirmed", "Pending", "Not Confirmed", "Date Pending"].indexOf(status) >= 0) ? "high" : (num > 0 ? "ok" : "med"),
+      });
+    });
+    return { allLeads: allLeads, crmData: crmData };
+  }
+
   // month list + rep list derived from data (so the UI rolls forward)
   function monthsFrom(leads, key) {
     var seen = {};
@@ -907,5 +949,6 @@
     HATCH_COLS: HATCH_COLS, ANGI_COLS: ANGI_COLS, provNorm: provNorm, nameKey: nameKey,
     buildHatchRecon: buildHatchRecon, buildBookings: buildBookings,
     setTranslators: setTranslators, statusCategory: statusCategory,
+    buildComms: buildComms,
   };
 });

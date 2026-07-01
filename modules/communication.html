@@ -1334,6 +1334,7 @@
 
 </div><!-- end page-coverage -->
 
+<script src="../assets/ztz-transforms.js"></script>
 <script>
 // ===== TAB NAVIGATION =====
 function showTab(id) {
@@ -1698,7 +1699,7 @@ function syncCustDateField() {
 // Used for dynamic date filtering on Sales Reps tab
 // ===================================================
 
-const ALL_LEADS = [
+let ALL_LEADS = [
 {r:"Maya Zoric",s:"Not Confirmed",c:"05/31/2026",m:"06/12/2026",e:0},
 {r:"Maya Zoric",s:"Expired",c:"05/31/2026",m:"06/02/2026",e:0},
 {r:"Maya Zoric",s:"Expired",c:"05/31/2026",m:"06/02/2026",e:0},
@@ -11283,7 +11284,7 @@ const REP_STATIC = {"Alex Koval":{"emailed":23,"sent":28,"replies":6,"avgResp":"
 // Full customer dataset from CRM + Email Tracker analysis
 const COVERAGE_SUMMARY = {"Alex Koval":{"total":1019,"emailed":24,"not_emailed":995,"contact_rate":2.4,"status_not_emailed":{"Expired":496,"Confirmed":242,"Archive":120,"Dead Lead":87,"Not Confirmed":37,"Cancelled":7,"Pending":5,"We are not available":1},"monthly":{"May 2026":{"total":287,"emailed":23,"not_emailed":264},"Apr 2026":{"total":271,"emailed":1,"not_emailed":270},"Mar 2026":{"total":173,"emailed":0,"not_emailed":173},"Feb 2026":{"total":130,"emailed":0,"not_emailed":130},"Jan 2026":{"total":156,"emailed":0,"not_emailed":156}}},"George Davis":{"total":922,"emailed":4,"not_emailed":918,"contact_rate":0.4,"status_not_emailed":{"Expired":372,"Dead Lead":177,"Archive":155,"Confirmed":150,"Not Confirmed":49,"Cancelled":9,"Pending":3,"In-home Estimate":2,"Date Pending":1},"monthly":{"May 2026":{"total":302,"emailed":3,"not_emailed":299},"Apr 2026":{"total":177,"emailed":1,"not_emailed":176},"Mar 2026":{"total":190,"emailed":0,"not_emailed":190},"Feb 2026":{"total":125,"emailed":0,"not_emailed":125},"Jan 2026":{"total":128,"emailed":0,"not_emailed":128}}},"David Barta":{"total":862,"emailed":5,"not_emailed":857,"contact_rate":0.6,"status_not_emailed":{"Expired":331,"Confirmed":198,"Archive":133,"Dead Lead":133,"Not Confirmed":35,"Pending":19,"Cancelled":7,"Date Pending":1},"monthly":{"May 2026":{"total":203,"emailed":5,"not_emailed":198},"Apr 2026":{"total":185,"emailed":0,"not_emailed":185},"Mar 2026":{"total":179,"emailed":0,"not_emailed":179},"Feb 2026":{"total":99,"emailed":0,"not_emailed":99},"Jan 2026":{"total":196,"emailed":0,"not_emailed":196}}},"Amy Olsson":{"total":923,"emailed":6,"not_emailed":917,"contact_rate":0.7,"status_not_emailed":{"Expired":366,"Archive":176,"Dead Lead":153,"Confirmed":144,"Not Confirmed":57,"Pending":14,"Cancelled":7},"monthly":{"May 2026":{"total":271,"emailed":6,"not_emailed":265},"Apr 2026":{"total":204,"emailed":0,"not_emailed":204},"Mar 2026":{"total":189,"emailed":0,"not_emailed":189},"Feb 2026":{"total":100,"emailed":0,"not_emailed":100},"Jan 2026":{"total":156,"emailed":0,"not_emailed":156}}},"Lisa Leman":{"total":835,"emailed":11,"not_emailed":824,"contact_rate":1.3,"status_not_emailed":{"Expired":420,"Confirmed":136,"Archive":108,"Dead Lead":56,"We are not available":46,"Not Confirmed":33,"Pending":10,"Cancelled":10,"Date Pending":4,"Spam":1},"monthly":{"May 2026":{"total":232,"emailed":11,"not_emailed":221},"Apr 2026":{"total":189,"emailed":0,"not_emailed":189},"Mar 2026":{"total":168,"emailed":0,"not_emailed":168},"Feb 2026":{"total":81,"emailed":0,"not_emailed":81},"Jan 2026":{"total":165,"emailed":0,"not_emailed":165}}},"Maya Zoric":{"total":1044,"emailed":3,"not_emailed":1041,"contact_rate":0.3,"status_not_emailed":{"Archive":340,"Expired":329,"Confirmed":176,"Dead Lead":116,"Not Confirmed":59,"Pending":9,"Cancelled":7,"Date Pending":3,"In-home Estimate":1,"Video Estimate":1},"monthly":{"May 2026":{"total":267,"emailed":3,"not_emailed":264},"Apr 2026":{"total":248,"emailed":0,"not_emailed":248},"Mar 2026":{"total":221,"emailed":0,"not_emailed":221},"Feb 2026":{"total":134,"emailed":0,"not_emailed":134},"Jan 2026":{"total":173,"emailed":0,"not_emailed":173}}},"Alanna Brown":{"total":857,"emailed":11,"not_emailed":846,"contact_rate":1.3,"status_not_emailed":{"Expired":450,"Archive":186,"Confirmed":111,"Dead Lead":39,"Not Confirmed":37,"Pending":12,"Cancelled":8,"We are not available":3},"monthly":{"May 2026":{"total":221,"emailed":10,"not_emailed":211},"Apr 2026":{"total":181,"emailed":1,"not_emailed":180},"Mar 2026":{"total":187,"emailed":0,"not_emailed":187},"Feb 2026":{"total":95,"emailed":0,"not_emailed":95},"Jan 2026":{"total":173,"emailed":0,"not_emailed":173}}},"Nick Haas":{"total":990,"emailed":1,"not_emailed":989,"contact_rate":0.1,"status_not_emailed":{"Expired":354,"Archive":292,"Confirmed":135,"Dead Lead":107,"Not Confirmed":60,"Pending":25,"We are not available":6,"Cancelled":6,"Date Pending":4},"monthly":{"May 2026":{"total":284,"emailed":1,"not_emailed":283},"Apr 2026":{"total":233,"emailed":0,"not_emailed":233},"Mar 2026":{"total":208,"emailed":0,"not_emailed":208},"Feb 2026":{"total":98,"emailed":0,"not_emailed":98},"Jan 2026":{"total":167,"emailed":0,"not_emailed":167}}},"Lucas RuizEstape":{"total":1062,"emailed":8,"not_emailed":1054,"contact_rate":0.8,"status_not_emailed":{"Expired":585,"Archive":224,"Confirmed":96,"Not Confirmed":66,"Dead Lead":43,"Pending":32,"Cancelled":6,"Date Pending":1,"We are not available":1},"monthly":{"May 2026":{"total":329,"emailed":7,"not_emailed":322},"Apr 2026":{"total":245,"emailed":0,"not_emailed":245},"Mar 2026":{"total":242,"emailed":0,"not_emailed":242},"Feb 2026":{"total":116,"emailed":1,"not_emailed":115},"Jan 2026":{"total":130,"emailed":0,"not_emailed":130}}},"Eli Kane":{"total":628,"emailed":35,"not_emailed":593,"contact_rate":5.6,"status_not_emailed":{"Dead Lead":288,"Expired":216,"Confirmed":26,"Archive":23,"Not Confirmed":21,"Pending":12,"Cancelled":5,"Date Pending":1,"Spam":1},"monthly":{"May 2026":{"total":301,"emailed":35,"not_emailed":266},"Apr 2026":{"total":230,"emailed":0,"not_emailed":230},"Mar 2026":{"total":97,"emailed":0,"not_emailed":97}}},"Daniella Pelowski":{"total":428,"emailed":0,"not_emailed":428,"contact_rate":0.0,"status_not_emailed":{"Expired":239,"Confirmed":73,"Archive":51,"Dead Lead":50,"Not Confirmed":4,"Cancelled":4,"We are not available":4,"Pending":2,"Date Pending":1},"monthly":{"Apr 2026":{"total":2,"emailed":0,"not_emailed":2},"Mar 2026":{"total":147,"emailed":0,"not_emailed":147},"Feb 2026":{"total":97,"emailed":0,"not_emailed":97},"Jan 2026":{"total":182,"emailed":0,"not_emailed":182}}}};
 
-const CRM_DATA = [
+let CRM_DATA = [
   // CONFIRMED BOOKINGS — HIGH RISK (unanswered/imminent)
   {name:'Peter Hsieh',        email:'ph0366173@protonmail.com',          rep:'David Barta',       status:'Confirmed',     flag:'spoke to customer/ Quality Lead', source:'Google',       moveDate:'06/12/2026', quoteDate:'05/27/2026', emailSent:true,  firstEmail:'05/29/2026', lastEmail:'05/29/2026', numEmails:1, replied:true,  followup:'Customer Waiting For Response', daysSince:11.2, priority:'CRITICAL'},
   {name:'Rebecca Schneider',  email:'rebecca.joy.schneider@gmail.com',   rep:'Lucas RuizEstape',  status:'Confirmed',     flag:'spoke to customer/ Quality Lead', source:'Yelp',         moveDate:'06/24/2026', quoteDate:'05/26/2026', emailSent:true,  firstEmail:'05/28/2026', lastEmail:'05/28/2026', numEmails:1, replied:true,  followup:'Customer Waiting For Response', daysSince:11.7, priority:'CRITICAL'},
@@ -12071,6 +12072,27 @@ function renderActLog(data) {
 // Auto-render on tab open — hooked into showTab
 // ─────────────────────────────────────────────────────────────────────────────
 
+
+/* ===== LIVE: rebuild CRM from moveboard, match embedded email events by address ===== */
+(function(){
+  var bridge=(window.parent&&window.parent.ZTZ_BRIDGE)||window.ZTZ_BRIDGE;
+  if(typeof ZTZ==='undefined'||!bridge||!bridge.onReady) return;
+  bridge.onReady(function(){
+    Promise.all([
+      bridge.get('moveboard',{since:new Date(Date.now()-186*864e5).toISOString().slice(0,10),since_col:'Create Date',limit:60000}),
+      bridge.get('sales_translator',{limit:2000}),
+      bridge.get('source_correction',{limit:2000}),
+      bridge.get('status_translator',{limit:2000})
+    ]).then(function(res){
+      ZTZ.setTranslators({sales:(res[1]&&res[1].rows)||[],source:(res[2]&&res[2].rows)||[],status:(res[3]&&res[3].rows)||[]});
+      var c=ZTZ.buildComms((res[0]&&res[0].rows)||[], EMAIL_ACTIVITY);
+      ALL_LEADS=c.allLeads; CRM_DATA=c.crmData;
+      window.chartsRendered=false;
+      try{ if(typeof renderCharts==='function'){ renderCharts(); window.chartsRendered=true; } }catch(e){}
+      try{ if(typeof renderActivity==='function') renderActivity(); }catch(e){}
+    }).catch(function(e){});
+  });
+})();
 </script>
 </body>
 </html>
