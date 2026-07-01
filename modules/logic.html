@@ -105,7 +105,7 @@ Fallback for unmapped names: built-in first-name matching.</p>
       sales.sort(function(a,b){return String(pick(a,['salesnickname'])).localeCompare(String(pick(b,['salesnickname'])));});
       fill('tbl-sales',sales,[function(r){return pick(r,['originalsalesname']);},function(r){return pick(r,['salesnickname']);}]);
       fill('tbl-source',source,[function(r){return pick(r,['originalsource']);},function(r){return pick(r,['source']);},function(r){return pick(r,['sourcecategory']);}]);
-      fill('tbl-status',status,[function(r){return pick(r,['status']);},function(r){return pick(r,['typecategory']);}]);
+      fill('tbl-status',status,[function(r){return pick(r,['statustype','status']);},function(r){return pick(r,['category','typecategory']);}]);
       st.textContent='Live mapping tables loaded — '+sales.length+' rep, '+source.length+' source, '+status.length+' status rows.';
     }).catch(function(e){ st.textContent='Could not load mapping tables: '+((e&&e.message)||e); });
   }

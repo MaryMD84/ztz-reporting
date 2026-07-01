@@ -875,7 +875,7 @@
     t = t || {};
     if (t.sales) _TR.rep = _buildTr(t.sales, ["originalsalesname"], ["salesnickname"], true);
     if (t.source) _TR.source = _buildTr(t.source, ["originalsource"], ["source"], false);
-    if (t.status) _TR.status = _buildTr(t.status, ["status"], ["typecategory"], false);
+    if (t.status) _TR.status = _buildTr(t.status, ["statustype", "status"], ["category", "typecategory"], false);
     return _TR;
   }
   // official status category (Confirmed / Bad Lead / Incoming Lead); null if unmapped/not loaded
