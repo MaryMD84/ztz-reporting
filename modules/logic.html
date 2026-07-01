@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Report Logic & Business Rules</title>
+<style>
+  :root{--ink:#0f172a;--mut:#64748b;--line:#e5e9f0;--bg:#f6f8fb;--accent:#1a56a4;--good:#16a34a;--warn:#b45309}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 26px 60px}
+  h1{font-size:22px;margin:0 0 4px}
+  .lead{color:var(--mut);font-size:13.5px;margin:0 0 20px;line-height:1.6}
+  h2{font-size:15px;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .hint{color:var(--mut);font-size:12.5px;margin:2px 0 12px;line-height:1.55}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+  code{background:#eef2f7;border-radius:4px;padding:1px 6px;font-size:12px}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:20px;background:#eef2f7;color:#475569}
+  .tag.live{background:#e7f6ec;color:var(--good)} .tag.official{background:#e8eefb;color:var(--accent)} .tag.builtin{background:#fdf1e3;color:var(--warn)}
+  .scroll{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+  ul{margin:6px 0;padding-left:20px} li{margin:4px 0;font-size:13px;line-height:1.5}
+  .k{font-weight:600}
+  .status{font-size:12.5px;color:var(--mut)}
+</style></head>
+<body><div class="wrap">
+<h1>Report Logic &amp; Business Rules</h1>
+<p class="lead">Everything each report uses to turn raw data into numbers, so you can check it against your intended logic.
+The <b>mapping tables</b> (rep / source / status) are pulled <b>live from the bridge</b> — what you see here is exactly what the reports apply.
+Anything a table doesn't cover falls back to a built-in rule (marked <span class="tag builtin">built-in</span>).</p>
+<p class="status" id="status">Loading live mapping tables…</p>
+
+<h2>1 · Which data source each report uses</h2>
+<div class="card"><table><thead><tr><th>Report</th><th>Source(s)</th><th>Notes</th></tr></thead><tbody>
+<tr><td class="k">Lead Distribution</td><td><span class="tag live">bridge · moveboard</span></td><td>One row per lead</td></tr>
+<tr><td class="k">MVD Analysis</td><td><span class="tag live">bridge · moveboard + ringcentral_calls + ringcentral_sms</span></td><td>Leads joined to calls/SMS by phone</td></tr>
+<tr><td class="k">Bad-Lead Intelligence</td><td><span class="tag live">bridge · moveboard</span></td><td>Filtered to the official “Bad Lead” status category</td></tr>
+<tr><td class="k">Hatch ↔ CRM</td><td><span class="tag live">bridge · hatch + moveboard + angi_leads</span></td><td>Two-stage reconciliation</td></tr>
+<tr><td class="k">Operations · Booked Jobs</td><td><span class="tag">Google Calendar + Slack #booking</span></td><td>Not the bridge (per your rule)</td></tr>
+<tr><td class="k">Communication</td><td><span class="tag">Google Drive Email Tracker + bridge moveboard</span></td><td>Matched by customer email</td></tr>
+</tbody></table></div>
+
+<h2>2 · Official mapping tables <span class="tag live">live from bridge</span></h2>
+
+<div class="card"><div class="k">Sales rep names — <code>sales_translator</code> <span class="tag official">official</span></div>
+<p class="hint">Every way a rep’s name appears in the data → one official name. Applied wherever reports group by rep.
+Fallback for unmapped names: built-in first-name matching.</p>
+<div class="scroll"><table id="tbl-sales"><thead><tr><th>Original name</th><th>→ Official rep</th></tr></thead><tbody></tbody></table></div></div>
+
+<div class="card"><div class="k">Lead sources — <code>source_correction</code> <span class="tag official">official</span></div>
+<p class="hint">Raw lead source → corrected source (and category). Applied to all source breakdowns.</p>
+<div class="scroll"><table id="tbl-source"><thead><tr><th>Original source</th><th>→ Source</th><th>Category</th></tr></thead><tbody></tbody></table></div></div>
+
+<div class="card"><div class="k">Statuses — <code>status_translator</code> <span class="tag official">official</span></div>
+<p class="hint">Raw status → category (<b>Confirmed</b> / <b>Bad Lead</b> / <b>Incoming Lead</b>). Bad-Lead Intelligence keeps only the <b>Bad Lead</b> rows.</p>
+<div class="scroll"><table id="tbl-status"><thead><tr><th>Status</th><th>→ Category</th></tr></thead><tbody></tbody></table></div></div>
+
+<h2>3 · Derived rules <span class="tag builtin">built-in</span></h2>
+<div class="card"><table><thead><tr><th>Field</th><th>Rule</th></tr></thead><tbody>
+<tr><td class="k">“Booked job”</td><td>moveboard/calendar Status = <code>Confirmed</code></td></tr>
+<tr><td class="k">Revenue</td><td>moveboard <code>Closing Total</code> (your chosen source of truth)</td></tr>
+<tr><td class="k">Cubic-feet buckets</td><td>&lt;200 · 200–399 · 400–599 · 600–799 · 800–999 · 1000–1499 · 1500–1999 · 2000+ (blank → “Not Set”)</td></tr>
+<tr><td class="k">Time-of-day (shift)</td><td>Morning 6–11 · Afternoon 12–16 · Evening 17–21 · Night 22–5 (from create time)</td></tr>
+<tr><td class="k">Move size group</td><td>Studio / 1-BR / Single item / Storage → <b>Small</b>; 2-BR / office / 3-BR condo → <b>Medium</b>; 3-BR house / 4-BR+ → <b>Large</b></td></tr>
+<tr><td class="k">Calls / SMS per lead</td><td>0 · 1 · 2–3 · 4–5 · 6–10 · 10+</td></tr>
+<tr><td class="k">Response time (speed-to-lead)</td><td>&lt;1 hr · 1–4 hrs · 4–24 hrs · 1–3 days · 3+ days · “No outbound” (lead create → first outbound call/SMS)</td></tr>
+<tr><td class="k">Interstate move</td><td>origin state ≠ destination state (parsed from Moving From / Moving To)</td></tr>
+<tr><td class="k">Date windows pulled</td><td>Leads/MVD: rolling ~6 months · Hatch CRM match: ~12 months · calls/SMS: same window as leads</td></tr>
+</tbody></table></div>
+
+<h2>4 · Report-specific logic</h2>
+<div class="card">
+<ul>
+<li><span class="k">Bad-Lead Intelligence:</span> keeps leads whose status is in the official <b>Bad Lead</b> category (Archive, Dead Lead, Spam, Video Estimate + “$” variants). Charts break down by status / source / rep / state / price / CF.</li>
+<li><span class="k">Hatch ↔ CRM:</span> two-stage match of Hatch contacts to CRM — <b>stage 1</b> exact name, <b>stage 2</b> phone (last 10 digits) on the name-misses. A contact is “in CRM” if either matches. Angi audit = Angi leads not found in CRM, flagged by whether they’re in Hatch.</li>
+<li><span class="k">Communication:</span> emails matched to leads by <b>customer email address</b>. Lead status = the Email Tracker sheet’s value, falling back to live moveboard by email when blank. Analyses: emails by status, per-customer frequency, totals by status, customers with no email, trend over time.</li>
+<li><span class="k">MVD Analysis:</span> leads joined to calls &amp; SMS by phone (last 10 digits). A call counts as <b>connected</b> if its result/action reads connected/accepted/answered and not missed/voicemail/busy/failed.</li>
+</ul>
+</div>
+
+<p class="hint" id="foot" style="margin-top:20px">— end of logic reference —</p>
+
+<script src="../assets/ztz-transforms.js"></script>
+<script>
+(function(){
+  var bridge=(window.parent&&window.parent.ZTZ_BRIDGE)||window.ZTZ_BRIDGE;
+  var st=document.getElementById('status');
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function fill(id,rows,cols){
+    var tb=document.querySelector('#'+id+' tbody');
+    tb.innerHTML=rows.map(function(r){return '<tr>'+cols.map(function(c){return '<td>'+esc(c(r))+'</td>';}).join('')+'</tr>';}).join('')
+      || '<tr><td colspan="'+cols.length+'" style="color:#94a3b8">no rows</td></tr>';
+  }
+  function pick(r,names){for(var k in r){var kn=k.toLowerCase().replace(/[\s._/#-]/g,'');for(var i=0;i<names.length;i++)if(kn===names[i])return r[k];}return '';}
+  if(!bridge){ st.textContent='Open this page from the platform and sign in to load the live mapping tables.'; return; }
+  function run(){
+    st.textContent='Loading live mapping tables…';
+    Promise.all([
+      bridge.rows('sales_translator',{limit:2000}),
+      bridge.rows('source_correction',{limit:2000}),
+      bridge.rows('status_translator',{limit:2000})
+    ]).then(function(res){
+      var sales=res[0]||[], source=res[1]||[], status=res[2]||[];
+      sales.sort(function(a,b){return String(pick(a,['salesnickname'])).localeCompare(String(pick(b,['salesnickname'])));});
+      fill('tbl-sales',sales,[function(r){return pick(r,['originalsalesname']);},function(r){return pick(r,['salesnickname']);}]);
+      fill('tbl-source',source,[function(r){return pick(r,['originalsource']);},function(r){return pick(r,['source']);},function(r){return pick(r,['sourcecategory']);}]);
+      fill('tbl-status',status,[function(r){return pick(r,['status']);},function(r){return pick(r,['typecategory']);}]);
+      st.textContent='Live mapping tables loaded — '+sales.length+' rep, '+source.length+' source, '+status.length+' status rows.';
+    }).catch(function(e){ st.textContent='Could not load mapping tables: '+((e&&e.message)||e); });
+  }
+  bridge.onReady?bridge.onReady(run):run();
+})();
+</script>
+</div></body></html>

@@ -24,8 +24,8 @@ window.ZTZ_CONFIG = {
       type:"native", desc:"Cross-source KPIs and health at a glance" },
 
     { id:"operations", title:"Operations · Booked Jobs", icon:"🚚", group:"Command Center",
-      type:"native", live:true, source:"Booked Jobs calendar",
-      desc:"Live confirmed moves, revenue pipeline, CF load & crew" },
+      type:"native", live:true, source:"Calendar + Slack",
+      desc:"Booked moves, revenue pipeline, CF load & crew" },
 
     { id:"lead-distribution", title:"Lead Distribution", icon:"📥", group:"Sales & Leads",
       type:"iframe", file:"modules/lead-distribution.html", source:"Moveboard Data",
@@ -42,6 +42,14 @@ window.ZTZ_CONFIG = {
     { id:"communication", title:"Communication", icon:"📨", group:"Quality & Risk",
       type:"iframe", file:"modules/communication.html", source:"Email Tracker",
       desc:"Coverage, response time, at-risk bookings, follow-ups" },
+
+    { id:"hatch-crm", title:"Hatch ↔ CRM", icon:"🔁", group:"Quality & Risk",
+      type:"iframe", file:"modules/hatch-crm.html", live:true, source:"Hatch + Moveboard + Angi",
+      desc:"Hatch outreach reconciled against the CRM; Angi lead-source audit" },
+
+    { id:"logic", title:"Report Logic", icon:"📐", group:"System",
+      type:"iframe", file:"modules/logic.html",
+      desc:"Every rule, mapping & calculation each report uses — for review" },
 
     { id:"sources", title:"Data Sources", icon:"🔌", group:"System",
       type:"native", desc:"Connected sheets, calendar & refresh status" }

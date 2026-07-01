@@ -1247,8 +1247,8 @@ document.getElementById('sched-reset').onclick=()=>{
   }
   function run(){
     note('Loading live data from the bridge…');
-    bridge.rows('moveboard',{limit:50000}).then(function(rows){
-      RAW=ZTZ.buildLeadDist(rows); applyData();
+    Promise.all([bridge.get('moveboard',{since:new Date(Date.now()-186*864e5).toISOString().slice(0,10),since_col:'Create Date',limit:40000}),bridge.get('sales_translator',{limit:2000}),bridge.get('source_correction',{limit:2000}),bridge.get('status_translator',{limit:2000})]).then(function(res){ZTZ.setTranslators({sales:(res[1]&&res[1].rows)||[],source:(res[2]&&res[2].rows)||[],status:(res[3]&&res[3].rows)||[]});var d=res[0],rows=d.rows||[];
+      RAW=ZTZ.buildLeadDist(rows); applyData(); if(d.truncated||rows.length>=40000){var hg=document.getElementById('hdrgen'); if(hg) hg.textContent='⚠ Partial (row cap) — narrow dates · '+hg.textContent;}
     }).catch(function(err){ note('Could not load live data: '+((err&&err.message)||err)); });
   }
   bridge.onReady?bridge.onReady(run):run();

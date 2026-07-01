@@ -24,6 +24,14 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
+  /* ---- official mapping/translator tables (loaded from the bridge) ---------
+     setTranslators() is called by each report with the sales_translator,
+     source_correction and status_translator datasets. Once set, canonRep()/
+     srcNorm() prefer the official mapping and fall back to the built-in rules. */
+  var _TR = { rep: null, source: null, status: null };
+  function trKey(s) { return String(s == null ? "" : s).trim().toLowerCase(); }
+  function cleanNick(s) { return String(s || "").replace(/^-?\d+\.\s*/, "").trim(); } // "2. Alex K." -> "Alex K."
+
   /* ---- column aliases (normalized: lowercased, [\s._/#-] stripped) --------- */
   var COLS = {
     id: ["", "id", "leadid", "leadnumber"], // "#" normalizes to ""
@@ -217,6 +225,7 @@
   }
   function canonRep(raw) {
     if (!raw) return "Unassigned";
+    if (_TR.rep) { var tv = _TR.rep[trKey(raw)]; if (tv) return tv; } // official Sales Translator
     var r = String(raw).replace(/<[^>]+>/g, "").trim().toLowerCase();
     r = r.split("/")[0].split("&")[0].split(",")[0].trim();
     for (var k in REPMAP) if (r.indexOf(k) === 0) return REPMAP[k];
@@ -239,6 +248,7 @@
   };
   function srcNorm(raw) {
     if (!raw) return "Unknown";
+    if (_TR.source) { var tv = _TR.source[trKey(raw)]; if (tv) return tv; } // official Source Correction
     var s = String(raw).trim();
     var key = s.toLowerCase();
     if (SRC_MAP[key]) return SRC_MAP[key];
@@ -672,6 +682,205 @@
       .reduce(function (n, k) { n[k] = o[k]; return n; }, {});
   }
 
+  /* ==========================================================================
+     HATCH ↔ CRM RECONCILIATION  (hatch + moveboard + angi_leads)
+     Two-stage match: exact name (stage 1), then phone last-10 on the leftovers.
+     Column names below are best-effort aliases for the bridge's hatch/angi
+     tables — adjust here if a field is empty after the first live load.
+     ========================================================================== */
+  var HATCH_COLS = {
+    name: ["contactname", "name"],
+    phone: ["phone", "phonenumber", "mobile", "cell"],
+    source: ["currentoppsource", "oppsource", "leadsource", "source", "provider"],
+    status: ["campaigncurrentstatus", "currentstatus", "campaignstatus", "status"],
+    launched: ["launchedatminute", "launchedat", "launched"],
+    org: ["organizationname", "organization"],
+    campaign: ["campaignname", "campaign"],
+  };
+  var ANGI_COLS = {
+    lead: ["leadnumber", "lead", "leadid"],
+    status: ["leadstatus", "status"],
+    first: ["customerfirstname", "firstname"],
+    last: ["customerlastname", "lastname"],
+    phone: ["phone", "phonenumber"],
+    email: ["email"],
+    city: ["city"],
+    state: ["state"],
+    date: ["leaddate", "date"],
+  };
+  function provNorm(raw) {
+    var s = String(raw || "").toLowerCase();
+    if (s.indexOf("yelp") >= 0) return "Yelp";
+    if (s.indexOf("angi") >= 0) return "Angi";
+    if (s.indexOf("thumbtack") >= 0) return "Thumbtack";
+    if (/meta|facebook|instagram|\bfb\b/.test(s)) return "Meta";
+    if (s.indexOf("google") >= 0) return "Google";
+    return raw ? String(raw).trim() : "Unknown";
+  }
+  function nameKey(s) {
+    return String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+  var CRM_STATUS_ORDER = ["Confirmed", "Pending", "Not Confirmed", "Date Pending",
+    "We are not available", "Archive", "Expired", "Dead Lead"];
+
+  function buildHatchRecon(hatchRows, moveRows, angiRows) {
+    // ---- CRM (moveboard) indexes by normalized name and phone last-10 ----
+    var crmByName = {}, crmByPhone = {};
+    (moveRows || []).forEach(function (r) {
+      var rec = { name: String(col(r, "customer") || "").trim(),
+        status: String(col(r, "status") || "").trim(),
+        src: String(col(r, "source") || "").trim() };
+      var nm = nameKey(rec.name), ph = digits10(col(r, "phone"));
+      if (nm) (crmByName[nm] = crmByName[nm] || []).push(rec);
+      if (ph) (crmByPhone[ph] = crmByPhone[ph] || []).push(rec);
+    });
+    // ---- Hatch contacts (+ indexes for the Angi audit) ----
+    var hatchByName = {}, hatchByPhone = {};
+    var contacts = (hatchRows || []).map(function (r) {
+      var nm = String(pick(r, HATCH_COLS.name) || "").trim();
+      var ph = digits10(pick(r, HATCH_COLS.phone));
+      var c = { name: nm, phone: String(pick(r, HATCH_COLS.phone) || "").trim(), phoneKey: ph,
+        prov: provNorm(pick(r, HATCH_COLS.source)),
+        hatch: String(pick(r, HATCH_COLS.status) || "").trim().toLowerCase(),
+        launched: String(pick(r, HATCH_COLS.launched) || "").trim() };
+      if (nameKey(nm)) (hatchByName[nameKey(nm)] = hatchByName[nameKey(nm)] || []).push(c);
+      if (ph) (hatchByPhone[ph] = hatchByPhone[ph] || []).push(c);
+      return c;
+    });
+
+    // ---- two-stage match ----
+    var matched = [], found = [], still = [];
+    contacts.forEach(function (c) {
+      var nk = nameKey(c.name);
+      var nh = nk ? crmByName[nk] : null;
+      if (nh && nh.length) {
+        var m = nh[0];
+        matched.push({ name: c.name, prov: c.prov, phone: c.phone, hatch: c.hatch, by: "Name",
+          crmName: m.name, crm: m.status, src: m.src, leads: String(nh.length) });
+        return;
+      }
+      var ph = c.phoneKey ? crmByPhone[c.phoneKey] : null;
+      if (ph && ph.length) {
+        var p = ph[0];
+        matched.push({ name: c.name, prov: c.prov, phone: c.phone, hatch: c.hatch, by: "Phone",
+          crmName: p.name, crm: p.status, src: p.src, leads: String(ph.length) });
+        found.push({ name: c.name, prov: c.prov, phone: c.phone, hatch: c.hatch,
+          crmName: p.name, diff: "Yes", crm: p.status, src: p.src });
+        return;
+      }
+      still.push({ name: c.name, prov: c.prov, phone: c.phone, hatch: c.hatch,
+        reason: c.phoneKey ? "Phone not in CRM" : "No phone in Hatch", launched: c.launched });
+    });
+
+    // ---- provider rollup ----
+    var pa = {};
+    contacts.forEach(function (c) {
+      var a = pa[c.prov] = pa[c.prov] || { prov: c.prov, contacts: 0, replied: 0, byname: 0, byphone: 0, incrm: 0, still: 0 };
+      a.contacts++;
+      if (/^repl/.test(c.hatch)) a.replied++; // "replied" but not "no reply"
+    });
+    matched.forEach(function (m) { var a = pa[m.prov]; if (!a) return; if (m.by === "Name") a.byname++; else a.byphone++; a.incrm++; });
+    still.forEach(function (s) { var a = pa[s.prov]; if (a) a.still++; });
+    var provider = Object.keys(pa).map(function (k) { return pa[k]; }).sort(function (a, b) { return b.contacts - a.contacts; });
+
+    // ---- CRM-status breakdown of matched (v = count, ph = matched-by-phone) ----
+    var bd = {};
+    matched.forEach(function (m) { var b = bd[m.crm] = bd[m.crm] || { k: m.crm, v: 0, ph: 0 }; b.v++; if (m.by === "Phone") b.ph++; });
+    var crmbd = Object.keys(bd).sort(function (a, b) {
+      var ia = CRM_STATUS_ORDER.indexOf(a), ib = CRM_STATUS_ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    }).map(function (k) { return bd[k]; });
+
+    // ---- reasons + confirmed ----
+    var rc = { "No phone in Hatch": 0, "Phone not in CRM": 0 };
+    still.forEach(function (s) { rc[s.reason] = (rc[s.reason] || 0) + 1; });
+    var reasons = [{ k: "No phone in Hatch", v: rc["No phone in Hatch"] }, { k: "Phone not in CRM", v: rc["Phone not in CRM"] }];
+    var confirmed = matched.filter(function (m) { return m.crm === "Confirmed"; }).length;
+
+    // ---- Angi audit: Angi leads NOT in CRM, flagged by Hatch presence ----
+    var angiRowsOut = [], inCrm = 0;
+    (angiRows || []).forEach(function (r) {
+      var nm = (String(pick(r, ANGI_COLS.first) || "").trim() + " " + String(pick(r, ANGI_COLS.last) || "").trim()).trim();
+      var ph = digits10(pick(r, ANGI_COLS.phone));
+      var isInCrm = (ph && crmByPhone[ph]) || (nameKey(nm) && crmByName[nameKey(nm)]);
+      if (isInCrm) { inCrm++; return; }
+      var inHatch = (ph && hatchByPhone[ph]) || (nameKey(nm) && hatchByName[nameKey(nm)]);
+      var city = String(pick(r, ANGI_COLS.city) || "").trim(), st = String(pick(r, ANGI_COLS.state) || "").trim();
+      angiRowsOut.push({ lead: String(pick(r, ANGI_COLS.lead) || ""), name: nm,
+        phone: String(pick(r, ANGI_COLS.phone) || "").trim(), email: String(pick(r, ANGI_COLS.email) || "").trim(),
+        loc: (city && st) ? (city + ", " + st) : (city || st || ""), status: String(pick(r, ANGI_COLS.status) || "").trim(),
+        hatch: inHatch ? "In Hatch" : "In neither", neither: !inHatch });
+    });
+    var total = (angiRows || []).length;
+    var angi = { total: total, in_crm: inCrm, not_in_crm: total - inCrm,
+      in_hatch_of_notin: angiRowsOut.filter(function (r) { return !r.neither; }).length,
+      neither: angiRowsOut.filter(function (r) { return r.neither; }).length, rows: angiRowsOut };
+
+    return { matched: matched, found: found, still: still, provider: provider,
+      crmbd: crmbd, reasons: reasons, confirmed: confirmed, angi: angi };
+  }
+
+  /* ==========================================================================
+     BOOKED JOBS from moveboard (full-year, live)  ->  the bookings[] shape the
+     Operations + Executive Overview native views already render.
+     "Booked" = CRM Status starts with "Conf" (Confirmed). Filter by move-date year.
+     ========================================================================== */
+  function buildBookings(moveRows, opts) {
+    opts = opts || {};
+    var year = opts.year || null; // e.g. 2026 to keep only that year's move dates
+    var out = [];
+    (moveRows || []).forEach(function (r) {
+      var status = String(col(r, "status") || "").trim();
+      if (!/^conf/i.test(status)) return; // booked jobs only
+      var md = toDate(col(r, "move_date"));
+      if (!md) return;
+      if (year && md.getFullYear() !== year) return;
+      var frm = parseState(col(r, "moving_from")); if (frm === "Unknown") frm = "";
+      var to = parseState(col(r, "moving_to")); if (to === "Unknown") to = "";
+      var cash = money(col(r, "closing"));
+      if (cash == null) cash = money(pick(r, ["grandtotalbycash", "cashtotal", "cash"]));
+      var card = money(pick(r, ["grandtotalbycard", "cardtotal", "card"]));
+      out.push({
+        id: String(col(r, "id") || ""), date: iso(md), time: "",
+        customer: String(col(r, "customer") || "").trim(),
+        from_state: frm, to_state: to,
+        route: (frm && to) ? (frm + "→" + to) : (frm || to || "—"),
+        interstate: !!(frm && to && frm !== to),
+        rep: canonRep(col(r, "rep")), source: srcNorm(col(r, "source")),
+        move_type: String(col(r, "service") || "").trim() || "Local Moving", job_type: "",
+        cf: parseCF(r), crew: intv(pick(r, ["crewsize", "crew"])),
+        cash_total: cash, card_total: card, deposit: money(pick(r, ["deposit"])),
+        job_code: "", request_id: String(col(r, "id") || ""), status: "confirmed",
+      });
+    });
+    out.sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1; });
+    return out;
+  }
+
+  /* ---- load the official translator tables into _TR ------------------------
+     sales_translator: ORIGINAL SALES NAME -> SALES NICKNAME (rep)
+     source_correction: Original Source -> Source (lead source)
+     status_translator: STATUS -> TYPE CATEGORY (Confirmed / Bad Lead / Incoming Lead) */
+  function _buildTr(rows, rawAliases, valAliases, cleanNum) {
+    var m = {};
+    (rows || []).forEach(function (r) {
+      var raw = String(pick(r, rawAliases) || "").trim();
+      var val = String(pick(r, valAliases) || "").trim();
+      if (cleanNum) val = cleanNick(val);
+      if (raw && val) m[trKey(raw)] = val;
+    });
+    return Object.keys(m).length ? m : null;
+  }
+  function setTranslators(t) {
+    t = t || {};
+    if (t.sales) _TR.rep = _buildTr(t.sales, ["originalsalesname"], ["salesnickname"], true);
+    if (t.source) _TR.source = _buildTr(t.source, ["originalsource"], ["source"], false);
+    if (t.status) _TR.status = _buildTr(t.status, ["status"], ["typecategory"], false);
+    return _TR;
+  }
+  // official status category (Confirmed / Bad Lead / Incoming Lead); null if unmapped/not loaded
+  function statusCategory(raw) { if (_TR.status) { var v = _TR.status[trKey(raw)]; if (v) return v; } return null; }
+
   // month list + rep list derived from data (so the UI rolls forward)
   function monthsFrom(leads, key) {
     var seen = {};
@@ -695,5 +904,8 @@
     buildBadLeads: buildBadLeads, buildLeadDist: buildLeadDist, buildMvdLeads: buildMvdLeads,
     buildCallLeads: buildCallLeads, buildCallMeta: buildCallMeta,
     monthsFrom: monthsFrom, repsFrom: repsFrom,
+    HATCH_COLS: HATCH_COLS, ANGI_COLS: ANGI_COLS, provNorm: provNorm, nameKey: nameKey,
+    buildHatchRecon: buildHatchRecon, buildBookings: buildBookings,
+    setTranslators: setTranslators, statusCategory: statusCategory,
   };
 });

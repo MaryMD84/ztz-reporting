@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hatch &harr; CRM Dashboard — June 2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1f4e78;--blue:#2e6cb5;--green:#16a34a;--ink:#1f2937;--mut:#6b7280;--line:#e5e7eb;--bg:#f4f6f9;--card:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+header{background:linear-gradient(135deg,#1f4e78,#2e6cb5);color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:20px;box-shadow:0 6px 18px rgba(31,78,120,.18)}
+header h1{font-size:22px;font-weight:700;letter-spacing:-.3px}
+header p{opacity:.92;margin-top:4px;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kpi.hl{border:1px solid #bbf7d0;background:#f0fdf4}
+.kpi .lab{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.kpi.hl .lab{color:#15803d}
+.kpi .val{font-size:28px;font-weight:700;color:var(--navy);margin-top:6px;line-height:1}
+.kpi.hl .val{color:#15803d}
+.kpi .sub{color:var(--mut);font-size:11px;margin-top:4px}
+.banner{display:flex;align-items:center;gap:14px;background:#ecfdf5;border:1px solid #a7f3d0;border-left:5px solid #16a34a;border-radius:12px;padding:14px 18px;margin-bottom:20px}
+.banner .big{font-size:30px;font-weight:800;color:#15803d;line-height:1}
+.banner .txt{font-size:13px;color:#166534}
+.banner .txt b{color:#14532d}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card h2{font-size:15px;color:var(--navy);margin-bottom:4px}
+.card .hint{color:var(--mut);font-size:12px;margin-bottom:14px}
+.bar-row{display:grid;grid-template-columns:128px 1fr 96px;align-items:center;gap:10px;margin:7px 0}
+.bar-row .nm{font-size:12.5px;color:#374151;display:flex;align-items:center;gap:7px}
+.track{background:#eef1f5;border-radius:6px;height:18px;overflow:hidden;display:flex}
+.fill{height:100%}
+.bar-row .ct{font-size:12px;color:var(--mut);text-align:right;font-variant-numeric:tabular-nums}
+.dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+.legend{font-size:11.5px;color:#6b7280;margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:5px}
+section.tbl{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+section.tbl.r2{border:1px solid #bbf7d0}
+section.tbl .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+section.tbl h2{font-size:15px;color:var(--navy)}
+section.tbl h2 span{color:var(--mut);font-weight:500;font-size:12.5px;margin-left:8px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools input,.tools select{font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.tools input{min-width:170px}
+.tbl-scroll{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse}
+thead th{position:sticky;top:0;background:#f1f5fa;color:#334155;text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;z-index:1}
+thead th:hover{background:#e6eef7}
+tbody td{padding:9px 12px;border-bottom:1px solid #f1f2f4;font-size:13px;white-space:nowrap}
+tbody tr:nth-child(even){background:#fafbfc}
+tbody tr:hover{background:#eef5fc}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-Confirmed{background:#dcfce7;color:#15803d}.b-Pending{background:#dbeafe;color:#1d4ed8}
+.b-NotConfirmed{background:#fef3c7;color:#b45309}.b-DatePending{background:#dbeafe;color:#1d4ed8}
+.b-Wearenotavailable{background:#ede9fe;color:#6d28d9}.b-Archive{background:#e2e8f0;color:#475569}
+.b-Expired{background:#e7e5e4;color:#57534e}.b-DeadLead{background:#fee2e2;color:#b91c1c}
+.b-replied{background:#dcfce7;color:#15803d}.b-noreply{background:#eceff3;color:#64748b}.b-inprogress{background:#dbeafe;color:#1d4ed8}
+.m-Name{background:#eceff3;color:#475569}.m-Phone{background:#dcfce7;color:#15803d}
+.arrow{color:#9aa3af;margin:0 4px}
+.diffName{color:#b45309;font-weight:600}
+.prov{font-size:11px;color:#475569;background:#eef2f7;border-radius:5px;padding:1px 7px}
+.muted{color:#9aa3af}
+.note{background:#fff8e6;border:1px solid #f5e3b3;border-radius:12px;padding:16px 20px;font-size:13px;color:#5b4a1a}
+.note h2{color:#8a6d1a;font-size:14px;margin-bottom:8px}.note ul{margin-left:18px}.note li{margin:5px 0}
+.foot{color:var(--mut);font-size:11.5px;text-align:center;margin-top:18px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+<header><h1>Hatch &harr; CRM Reconciliation Dashboard</h1>
+<p>June 2026 &middot; two-stage match: <b>name</b> (stage 1) then <b>phone number</b> (stage 2) on the leftovers</p></header>
+
+<div class="banner"><div class="big">+69</div><div class="txt">
+<b>Phone re-matching found 69 customers</b> that name-matching had missed &mdash; every one was in the CRM under a <b>different name</b> (e.g. "Doug Toler"&rarr;"Douglas Toler", "Izumi V."&rarr;"Izumi Vincent"). CRM coverage rises from 544 to <b>613 (54%)</b>; Confirmed customers from 13 to <b>23</b>.</div></div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="grid2">
+  <div class="card"><h2>CRM status of matched customers</h2>
+    <div class="hint">All 613 in-CRM contacts by CRM status. Green segment = found via phone in stage 2.</div>
+    <div id="crmbars"></div></div>
+  <div class="card"><h2>CRM coverage by provider</h2>
+    <div class="hint">Share of each provider's contacts found in the CRM.</div>
+    <div id="provbars"></div>
+    <div class="legend"><span><span class="dot" style="background:#1f4e78"></span>by name</span><span><span class="dot" style="background:#16a34a"></span>by phone (new)</span><span><span class="dot" style="background:#eef1f5"></span>still not in CRM</span></div></div>
+</div>
+
+<section class="tbl r2"><div class="head">
+  <h2>Found by phone — Round 2 <span id="fcount"></span></h2>
+  <div class="tools"><input id="fsearch" placeholder="Search name, phone…"><select id="fprov"><option value="">All providers</option></select><select id="fstat"><option value="">All CRM statuses</option></select></div></div>
+  <div class="tbl-scroll"><table id="ftable"><thead><tr>
+    <th data-k="name">Hatch Name</th><th data-k="crmName">CRM Name (actual)</th><th data-k="prov">Provider</th>
+    <th data-k="phone">Phone</th><th data-k="hatch">Hatch Status</th><th data-k="crm">CRM Status</th><th data-k="src">CRM Source</th>
+  </tr></thead><tbody></tbody></table></div></section>
+
+<section class="tbl"><div class="head">
+  <h2>All matched customers — in CRM <span id="mcount"></span></h2>
+  <div class="tools"><input id="msearch" placeholder="Search name, phone, source…"><select id="mby"><option value="">Name &amp; phone</option><option value="Name">By name</option><option value="Phone">By phone</option></select><select id="mprov"><option value="">All providers</option></select><select id="mstat"><option value="">All CRM statuses</option></select></div></div>
+  <div class="tbl-scroll"><table id="mtable"><thead><tr>
+    <th data-k="name">Hatch Contact</th><th data-k="prov">Provider</th><th data-k="phone">Phone</th><th data-k="hatch">Hatch Status</th>
+    <th data-k="by">Matched By</th><th data-k="crmName">CRM Customer</th><th data-k="crm">CRM Status</th><th data-k="src">CRM Source</th>
+  </tr></thead><tbody></tbody></table></div></section>
+
+<section class="tbl"><div class="head">
+  <h2>Still not in CRM <span id="scount"></span></h2>
+  <div class="tools"><input id="ssearch" placeholder="Search name, phone…"><select id="sprov"><option value="">All providers</option></select><select id="sreason"><option value="">All reasons</option></select></div></div>
+  <div class="tbl-scroll"><table id="stable"><thead><tr>
+    <th data-k="name">Hatch Contact</th><th data-k="prov">Provider</th><th data-k="phone">Phone</th><th data-k="hatch">Hatch Status</th><th data-k="reason">Reason not found</th>
+  </tr></thead><tbody></tbody></table></div></section>
+
+<section class="tbl" style="border:1px solid #fcd34d">
+  <div class="head"><h2>Angi lead-source audit &mdash; leads not in CRM <span id="acount"></span></h2>
+  <div class="tools"><input id="asearch" placeholder="Search name, phone, email…"><select id="ahatch"><option value="">All</option></select></div></div>
+  <div id="angistats" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px"></div>
+  <div class="tbl-scroll"><table id="atable"><thead><tr>
+    <th data-k="lead">Lead #</th><th data-k="name">Customer</th><th data-k="phone">Phone</th>
+    <th data-k="email">Email</th><th data-k="loc">Location</th><th data-k="status">Angi Status</th><th data-k="hatch">In Hatch?</th>
+  </tr></thead><tbody></tbody></table></div></section>
+
+<div class="note">
+<h2>How to read this &mdash; important caveats</h2><ul>
+<li><b>Two-stage match:</b> stage 1 = exact name; stage 2 = phone (last 10 digits) on the name-misses only. A contact is "in CRM" if either matched.</li>
+<li><b>517 still not found, and most can't be checked:</b> 371 have <b>no phone in Hatch</b> (almost all Yelp), so phone can't confirm them &mdash; they may still be in the CRM under a fuller name. Only 146 have a phone that is genuinely absent from the CRM.</li>
+<li><b>Phone is the reliable key.</b> Fixing Yelp lead capture (full name + phone) is the lasting fix.</li>
+</ul></div>
+<div class="foot">Generated from contact_history (Hatch) &amp; CRM.csv &middot; click any column header to sort.</div>
+</div>
+<script src="../assets/ztz-transforms.js"></script>
+<script>
+let DATA = {matched:[],found:[],still:[],provider:[],crmbd:[],reasons:[],confirmed:0,angi:{total:0,in_crm:0,not_in_crm:0,in_hatch_of_notin:0,neither:0,rows:[]}}; /* live: built from bridge hatch + moveboard + angi_leads */
+const CRM_COLORS={'Confirmed':'#22c55e','Pending':'#3b82f6','Not Confirmed':'#f59e0b','Date Pending':'#60a5fa','We are not available':'#8b5cf6','Archive':'#94a3b8','Expired':'#a8a29e','Dead Lead':'#ef4444'};
+const cls=s=>'b-'+s.replace(/[^A-Za-z]/g,'');
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderAll(){
+const tot=DATA.matched.length+DATA.still.length;
+const inc=DATA.matched.length, byphone=DATA.found.length, byname=inc-byphone;
+const kpis=[
+ {l:'Hatch contacts',v:tot.toLocaleString(),s:'4 providers'},
+ {l:'In CRM (total)',v:inc.toLocaleString(),s:(inc/tot*100).toFixed(0)+'% of contacts'},
+ {l:'Found by phone',v:'+'+byphone,s:'new this round',hl:1},
+ {l:'Still not in CRM',v:DATA.still.length.toLocaleString(),s:(DATA.still.length/tot*100).toFixed(0)+'% of contacts'},
+ {l:'Confirmed',v:DATA.confirmed,s:'was 13 (name only)'},
+];
+document.getElementById('kpis').innerHTML=kpis.map(k=>`<div class="kpi ${k.hl?'hl':''}"><div class="lab">${k.l}</div><div class="val">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
+
+(function(){const max=Math.max(...DATA.crmbd.map(x=>x.v));
+ document.getElementById('crmbars').innerHTML=DATA.crmbd.map(x=>{
+  const w=(x.v/max*100).toFixed(1),phw=x.v?(x.ph/x.v*100*w/100).toFixed(1):0,pct=(x.v/inc*100).toFixed(1);
+  return `<div class="bar-row"><div class="nm"><span class="dot" style="background:${CRM_COLORS[x.k]||'#999'}"></span>${x.k}</div>
+  <div class="track"><div class="fill" style="width:${w-phw}%;background:${CRM_COLORS[x.k]||'#999'};opacity:.55"></div><div class="fill" style="width:${phw}%;background:#16a34a"></div></div>
+  <div class="ct">${x.v} &middot; ${pct}%${x.ph?` <span style="color:#16a34a">(+${x.ph})</span>`:''}</div></div>`;}).join('');})();
+
+(function(){document.getElementById('provbars').innerHTML=DATA.provider.map(p=>{
+  const wn=(p.byname/p.contacts*100).toFixed(1),wp=(p.byphone/p.contacts*100).toFixed(1),cov=((p.incrm)/p.contacts*100).toFixed(0);
+  return `<div class="bar-row"><div class="nm">${p.prov} <span class="muted">(${p.contacts.toLocaleString()})</span></div>
+  <div class="track"><div class="fill" style="width:${wn}%;background:#1f4e78"></div><div class="fill" style="width:${wp}%;background:#16a34a"></div></div>
+  <div class="ct">${cov}% in CRM</div></div>`;}).join('');})();
+
+function setup(rows,o){
+ const tb=document.querySelector(o.t+' tbody');
+ const sel={};o.filters.forEach(f=>{sel[f.id]=document.getElementById(f.id);[...new Set(f.opts?f.opts:rows.map(r=>r[f.key]))].forEach(v=>sel[f.id].add(new Option(v,v)));});
+ const search=document.getElementById(o.search),counter=document.getElementById(o.count);
+ let sk=null,sd=1;
+ function render(){const q=search.value.trim().toLowerCase();
+  let f=rows.filter(r=>o.filters.every(fl=>!sel[fl.id].value||r[fl.key]===sel[fl.id].value)&&(!q||o.sk.some(k=>(r[k]||'').toLowerCase().includes(q))));
+  if(sk)f.sort((a,b)=>{let x=a[sk]||'',y=b[sk]||'';return String(x).localeCompare(String(y))*sd;});
+  counter.textContent='('+f.length.toLocaleString()+(f.length===rows.length?'':' of '+rows.length.toLocaleString())+')';
+  tb.innerHTML=f.map(o.row).join('')||`<tr><td colspan="8" class="muted" style="padding:20px;text-align:center">No matches</td></tr>`;}
+ document.querySelectorAll(o.t+' thead th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sd=(sk===k)?-sd:1;sk=k;
+  document.querySelectorAll(o.t+' thead th').forEach(t=>t.textContent=t.textContent.replace(/ [▲▼]$/,''));th.textContent+=sd>0?' ▲':' ▼';render();});
+ [search,...Object.values(sel)].forEach(el=>el.oninput=render);render();}
+
+setup(DATA.found,{t:'#ftable',search:'fsearch',count:'fcount',sk:['name','crmName','phone','src'],
+ filters:[{id:'fprov',key:'prov'},{id:'fstat',key:'crm',opts:['Confirmed','Pending','Not Confirmed','Date Pending','Archive','Expired','Dead Lead']}],
+ row:r=>`<tr><td>${esc(r.name)}</td><td><span class="diffName">${esc(r.crmName)}</span></td><td><span class="prov">${esc(r.prov)}</span></td>
+ <td>${esc(r.phone)}</td><td><span class="badge ${cls(r.hatch)}">${esc(r.hatch)}</span></td>
+ <td><span class="badge ${cls(r.crm)}">${esc(r.crm)}</span></td><td>${esc(r.src)}</td></tr>`});
+
+setup(DATA.matched,{t:'#mtable',search:'msearch',count:'mcount',sk:['name','phone','src','crmName'],
+ filters:[{id:'mby',key:'by',opts:['Name','Phone']},{id:'mprov',key:'prov'},{id:'mstat',key:'crm',opts:['Confirmed','Pending','Not Confirmed','Date Pending','We are not available','Archive','Expired','Dead Lead']}],
+ row:r=>`<tr><td>${esc(r.name)||'<span class=muted>(blank)</span>'}</td><td><span class="prov">${esc(r.prov)}</span></td>
+ <td>${esc(r.phone)||'<span class=muted>&mdash;</span>'}</td><td><span class="badge ${cls(r.hatch)}">${esc(r.hatch)}</span></td>
+ <td><span class="badge m-${r.by}">${r.by==='Phone'?'☎ Phone':'Name'}</span></td><td>${esc(r.crmName)}</td>
+ <td><span class="badge ${cls(r.crm)}">${esc(r.crm)}</span></td><td>${esc(r.src)}</td></tr>`});
+
+setup(DATA.still,{t:'#stable',search:'ssearch',count:'scount',sk:['name','phone'],
+ filters:[{id:'sprov',key:'prov'},{id:'sreason',key:'reason',opts:['No phone in Hatch','Phone not in CRM']}],
+ row:r=>`<tr><td>${esc(r.name)||'<span class=muted>(blank)</span>'}</td><td><span class="prov">${esc(r.prov)}</span></td>
+ <td>${esc(r.phone)||'<span class=muted>&mdash;</span>'}</td><td><span class="badge ${cls(r.hatch)}">${esc(r.hatch)}</span></td>
+ <td>${esc(r.reason)}</td></tr>`});
+(function(){const A=DATA.angi;
+ document.getElementById('angistats').innerHTML=[['Angi leads',A.total],['In CRM',A.in_crm+' ('+Math.round(A.in_crm/A.total*100)+'%)'],['Not in CRM',A.not_in_crm],['In neither system',A.neither]].map((s,i)=>`<div style="background:${i==3?'#fff7ed':'#f1f5fa'};border:1px solid ${i==3?'#fcd34d':'#e5e7eb'};border-radius:9px;padding:8px 14px"><div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">${s[0]}</div><div style="font-size:18px;font-weight:700;color:${i==3?'#b45309':'#1f4e78'}">${s[1]}</div></div>`).join('');
+ const rows=A.rows.map(r=>Object.assign({},r,{hflag:r.neither?'In neither':'In Hatch'}));
+ setup(rows,{t:'#atable',search:'asearch',count:'acount',sk:['name','phone','email','lead'],
+  filters:[{id:'ahatch',key:'hflag',opts:['In Hatch','In neither']}],
+  row:r=>`<tr style="${r.neither?'background:#fff7ed':''}"><td>${esc(r.lead)}</td><td style="${r.neither?'color:#b45309;font-weight:600':''}">${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.email)}</td><td>${esc(r.loc)}</td><td>${esc(r.status)}</td><td>${r.neither?'<span class="badge" style="background:#fed7aa;color:#b45309">In neither</span>':'<span class="badge b-replied">'+esc(r.hatch)+'</span>'}</td></tr>`});
+})();
+}
+/* ====== LIVE: reconcile hatch + moveboard + angi_leads from the bridge ====== */
+(function(){
+  var bridge=(window.parent&&window.parent.ZTZ_BRIDGE)||window.ZTZ_BRIDGE;
+  function note(t){var k=document.getElementById('kpis'); if(k) k.innerHTML='<div class="kpi" style="grid-column:1/-1;text-align:center">'+t+'</div>';}
+  if(typeof ZTZ==='undefined'){ note('Data transforms not loaded.'); return; }
+  if(!bridge){ note('Open this report from the platform and sign in to load live data.'); return; }
+  function run(){
+    note('Loading live data from the bridge\u2026');
+    var SINCE=new Date(Date.now()-372*864e5).toISOString().slice(0,10); // ~12 months so older CRM matches aren't missed
+    Promise.all([
+      bridge.get('hatch',{limit:50000}),
+      bridge.get('moveboard',{since:SINCE,since_col:'Create Date',limit:80000}),
+      bridge.get('angi_leads',{since:SINCE,since_col:'Lead Date',limit:60000}),
+      bridge.get('sales_translator',{limit:2000}),
+      bridge.get('source_correction',{limit:2000}),
+      bridge.get('status_translator',{limit:2000})
+    ]).then(function(res){
+      ZTZ.setTranslators({sales:(res[3]&&res[3].rows)||[],source:(res[4]&&res[4].rows)||[],status:(res[5]&&res[5].rows)||[]});
+      DATA=ZTZ.buildHatchRecon(res[0].rows||[], res[1].rows||[], res[2].rows||[]);
+      renderAll();
+      if(res[1].truncated||res[2].truncated){var h=document.querySelector('header p'); if(h) h.innerHTML+=' \u00b7 \u26a0 partial CRM/Angi window (row cap)';}
+    }).catch(function(err){ note('Could not load live data: '+((err&&err.message)||err)); });
+  }
+  bridge.onReady?bridge.onReady(run):run();
+})();
+</script></body></html>

@@ -120,22 +120,29 @@
   function fetchCalendar(){
     setState("loading");
     var now=Date.now();
-    var tmin=new Date(now-(CFG.windowDaysBack||3)*864e5).toISOString();
-    var tmax=new Date(now+(CFG.windowDaysFwd||21)*864e5).toISOString();
-    var url="https://www.googleapis.com/calendar/v3/calendars/"+encodeURIComponent(CFG.calendarId)+
+    var tmin=CFG.timeMin || new Date(now-(CFG.windowDaysBack||3)*864e5).toISOString();
+    var tmax=CFG.timeMax || new Date(now+(CFG.windowDaysFwd||21)*864e5).toISOString();
+    var base="https://www.googleapis.com/calendar/v3/calendars/"+encodeURIComponent(CFG.calendarId)+
       "/events?singleEvents=true&orderBy=startTime&maxResults="+(CFG.maxResults||250)+
       "&timeMin="+encodeURIComponent(tmin)+"&timeMax="+encodeURIComponent(tmax);
-    fetch(url,{headers:{Authorization:"Bearer "+accessToken}})
-      .then(function(r){ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
-      .then(function(data){
-        var rows=parseEvents(data.items||[]);
-        if(!rows.length){ setState(loadCacheExists()?"cached":"ready"); return; }
-        var meta=aggregate(rows);
-        apply(rows,meta); saveCache(rows,meta);
-        window.__ztzSync=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-        setState("live");
-      })
-      .catch(function(){ setState(loadCacheExists()?"cached":"error"); });
+    var items=[];
+    function page(tok){
+      var url=base+(tok?("&pageToken="+encodeURIComponent(tok)):"");
+      return fetch(url,{headers:{Authorization:"Bearer "+accessToken}})
+        .then(function(r){ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
+        .then(function(data){
+          items=items.concat(data.items||[]);
+          if(data.nextPageToken && items.length<20000) return page(data.nextPageToken);
+        });
+    }
+    page(null).then(function(){
+      var rows=parseEvents(items);
+      if(!rows.length){ setState(loadCacheExists()?"cached":"ready"); return; }
+      var meta=aggregate(rows);
+      apply(rows,meta); saveCache(rows,meta);
+      window.__ztzSync=new Date().toLocaleString();
+      setState("live");
+    }).catch(function(){ setState(loadCacheExists()?"cached":"error"); });
   }
 
   /* ---------- init (called by the shell once it's ready) ---------- */

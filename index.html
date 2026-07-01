@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Zip To Zip Moving — Reporting Platform</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a56a4'/%3E%3Ctext x='16' y='22' font-size='15' font-family='Arial,sans-serif' font-weight='bold' fill='white' text-anchor='middle'%3EZZ%3C/text%3E%3C/svg%3E"/>
 <link rel="stylesheet" href="assets/theme.css"/>
 </head>
 <body>
@@ -130,7 +131,7 @@
     var q=S.quality||{},c=S.calls||{},co=S.comms||{},le=S.leads||{};
     var html='';
     // Live booked-jobs band
-    html+=secH('Live — Booked Jobs','from the Booked Jobs calendar · '+(M.window_start||'')+' → '+(M.window_end||''));
+    html+=secH('Live — Booked Jobs','from Booked Jobs calendar + #booking (Slack) · move dates '+(M.window_start||'')+' → '+(M.window_end||''));
     html+='<div class="kpis">'+
       kpi('Booked Jobs',num(M.jobs),'in current window','k-teal')+
       kpi('Pipeline Revenue',moneyK(M.cash_total),'cash · '+moneyK(M.card_total)+' card','k-green')+
@@ -189,7 +190,7 @@
       '<select class="ctrl" id="opsDay"><option value="All">All days</option>'+opsDays().map(function(o){return '<option'+(o===opsState.day?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'+
       '<button class="chip ghost" id="opsReset">Reset</button>'+
       '<span class="spacer" style="flex:1"></span>'+
-      '<span class="src-tag">🔌 Booked Jobs calendar · live</span>';
+      '<span class="src-tag">🔌 Booked Jobs calendar + Slack · live</span>';
     $('#opsRep').onchange=function(){opsState.rep=this.value;store('ops_rep',this.value);renderOperations(true)};
     $('#opsSource').onchange=function(){opsState.source=this.value;store('ops_source',this.value);renderOperations(true)};
     $('#opsDay').onchange=function(){opsState.day=this.value;renderOperations(true)};
@@ -264,11 +265,11 @@
       '<div class="grid g-2" style="margin-top:16px">'+
       '<div class="card"><h3>How data flows</h3><p class="hint">live bridge → in-browser transforms → reports</p>'+
         '<div class="bars">'+
-        '<div class="bar"><div class="bn">Live bridge API</div><div class="bt"><div class="bf" style="width:75%"></div></div><div class="bv">3</div></div>'+
-        '<div class="bar alt"><div class="bn">Google Calendar</div><div class="bt"><div class="bf" style="width:25%"></div></div><div class="bv">1</div></div>'+
-        '<div class="bar"><div class="bn">Google Sheet (email)</div><div class="bt"><div class="bf" style="width:25%"></div></div><div class="bv">1</div></div>'+
+        '<div class="bar"><div class="bn">Live bridge API</div><div class="bt"><div class="bf" style="width:90%"></div></div><div class="bv">5</div></div>'+
+        '<div class="bar alt"><div class="bn">Google Calendar</div><div class="bt"><div class="bf" style="width:20%"></div></div><div class="bv">1</div></div>'+
+        '<div class="bar"><div class="bn">Google Sheet (email)</div><div class="bt"><div class="bf" style="width:20%"></div></div><div class="bv">1</div></div>'+
         '</div>'+
-        '<p class="note" style="margin-top:14px">Moveboard &amp; RingCentral (calls/SMS) are read <b>live</b> from the centralized bridge API — '+
+        '<p class="note" style="margin-top:14px">Moveboard, RingCentral (calls/SMS), Hatch &amp; Angi are read <b>live</b> from the centralized bridge API — '+
         'a read-only, company-sign-in-gated endpoint that refreshes ~every 6&nbsp;hours — and transformed in the browser by '+
         '<code>assets/ztz-transforms.js</code>. No spreadsheet copies to re-publish; nothing is cached. '+
         'Booked Jobs is live from Calendar; the Email Tracker remains a Google Sheet.</p></div>'+

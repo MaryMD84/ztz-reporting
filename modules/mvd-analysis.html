@@ -738,11 +738,15 @@ function renderAll(){
   function run(){
     note('Loading live data…');
     Promise.all([
-      bridge.rows('moveboard',{limit:60000,since:SINCE,since_col:'Create Date'}),
-      bridge.rows('ringcentral_calls',{limit:500000,since:SINCE,since_col:'Date'}),
-      bridge.rows('ringcentral_sms',{limit:300000,since:SINCE,since_col:'Date / Time'})
+      bridge.get('moveboard',{since:SINCE,since_col:'Create Date',limit:200000}),
+      bridge.get('ringcentral_calls',{since:SINCE,since_col:'Date',limit:1000000}),
+      bridge.get('ringcentral_sms',{since:SINCE,since_col:'Date / Time',limit:1000000}),
+      bridge.get('sales_translator',{limit:2000}),
+      bridge.get('source_correction',{limit:2000}),
+      bridge.get('status_translator',{limit:2000})
     ]).then(function(res){
-      var move=res[0],calls=res[1],sms=res[2];
+      ZTZ.setTranslators({sales:(res[3]&&res[3].rows)||[],source:(res[4]&&res[4].rows)||[],status:(res[5]&&res[5].rows)||[]});
+      var move=(res[0]&&res[0].rows)||[], calls=(res[1]&&res[1].rows)||[], sms=(res[2]&&res[2].rows)||[];
       MVD_LEADS=ZTZ.buildMvdLeads(move);
       CALL_LEADS=ZTZ.buildCallLeads(move,calls,sms);
       CALL_META=ZTZ.buildCallMeta(move,calls,sms);

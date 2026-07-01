@@ -11,16 +11,20 @@
    Your sheets/calendar stay private — only authorized Google users see data.
    ========================================================================== */
 window.ZTZ_LIVE_CONFIG = {
-  // Paste your OAuth Client ID here, e.g. "123456789-abcd.apps.googleusercontent.com"
-  clientId: "",
+  // Reuse the bridge's Google Web client for the in-browser Calendar/Sheets read.
+  // (Works if this client is authorized for Calendar API + Sheets API scopes; if not,
+  //  the calendar fetch fails gracefully and Operations shows the bundled snapshot.)
+  clientId: "32168089642-fkk3rglncf6hl5ikq7pi6jbornug1kbb.apps.googleusercontent.com",
 
-  // Live source (already identified in your Drive/Calendar)
+  // Live source (the "Booked Jobs" calendar)
   calendarId: "contact@ziptozipmoving.com",
 
-  // Rolling window pulled live from the Booked Jobs calendar
+  // Full-year window pulled live from the Booked Jobs calendar (Operations = Calendar + Slack).
+  timeMin: "2026-01-01T00:00:00Z",
+  timeMax: "2027-01-01T00:00:00Z",
   windowDaysBack: 3,
   windowDaysFwd: 21,
-  maxResults: 250,
+  maxResults: 2500,
 
   // Sheets are pre-wired for the next step (calendar is live now).
   // Enabling them later only requires switching their flag to true in live-data.js.

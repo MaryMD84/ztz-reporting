@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM Bad Lead Intelligence Dashboard — 2026 (Jan–May)</title>
+<title>CRM Bad Lead Intelligence Dashboard — Live · MoveBoard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/gridjs.umd.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/theme/mermaid.min.css" rel="stylesheet">
@@ -75,7 +75,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>CRM Bad Lead Intelligence Dashboard <span style="font-weight:500;color:var(--muted);font-size:15px;margin-left:6px;">— 2026 (Jan–May)</span></h1>
+      <h1>CRM Bad Lead Intelligence Dashboard <span style="font-weight:500;color:var(--muted);font-size:15px;margin-left:6px;">— Live · MoveBoard</span></h1>
       <div class="sub" id="subline">Loading&hellip;</div>
     </div>
     <div class="actions">
@@ -125,6 +125,7 @@
   </footer>
 </div>
 
+<script src="../assets/ztz-transforms.js"></script>
 <script>
 /* ============ EMBEDDED DATA ============ */
 var SRC_FILE = "Bad leads 01-05 _26.xlsx";
@@ -135,8 +136,8 @@ var US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL
 function parseState(s){ if(!s) return "Unknown"; var m=String(s).match(/\b([A-Z]{2})\b/g); if(m){for(var i=0;i<m.length;i++){if(US_STATES.indexOf(m[i])>=0) return m[i];}} return "Unknown"; }
 function parseCF(s){ if(!s) return null; var m=String(s).match(/([\d,]+)\s*cf/i); return m?parseInt(m[1].replace(/,/g,''),10):null; }
 function parseQuote(s){ if(!s) return [null,null]; var n=String(s).match(/[\d,]+\.?\d*/g); if(!n) return [null,null]; n=n.map(function(x){return parseFloat(x.replace(/,/g,''));}); if(n.length>=2) return [n[0],n[1]]; if(n.length===1) return [n[0],n[0]]; return [null,null]; }
-function normRep(s){ s=(s||"").trim(); if(!s) return "Unassigned"; if(s.toLowerCase().replace(/\s/g,'').indexOf("lucasruiz")>=0) return "Lucas Ruiz Estape"; return s; }
-function normSource(s){ s=(s||"").trim(); if(!s) return "Unknown"; var l=s.toLowerCase();
+function normRep(s){ if(window.ZTZ&&ZTZ.canonRep) return ZTZ.canonRep(s); s=(s||"").trim(); if(!s) return "Unassigned"; if(s.toLowerCase().replace(/\s/g,'').indexOf("lucasruiz")>=0) return "Lucas Ruiz Estape"; return s; }
+function normSource(s){ if(window.ZTZ&&ZTZ.srcNorm) return ZTZ.srcNorm(s); s=(s||"").trim(); if(!s) return "Unknown"; var l=s.toLowerCase();
   if(l.indexOf("angi")>=0) return "Angi Ads"; if(l.indexOf("yelp")>=0) return "Yelp";
   if(l.indexOf("facebook")>=0||l==="fb") return "Facebook"; if(l.indexOf("google")===0) return "Google";
   if(l.indexOf("thumbtack")>=0) return "Thumbtack"; if(l.indexOf("moveboard")>=0) return "Moveboard";
@@ -181,7 +182,7 @@ function cleanRows(rows){
 
 /* ============ STATE ============ */
 var charts={};
-var FKEY="crm_badlead_filters_v1";
+var FKEY="crm_badlead_filters_v2";
 var defFilters={dateFrom:"",dateTo:"",rep:"",source:"",status:"",state:"",flag:""};
 var F=Object.assign({},defFilters);
 
@@ -479,17 +480,19 @@ loadFilters();
 (function(){
   // Bad-Lead universe = moveboard leads whose CRM Status is one of these.
   // (Matches the bad-lead export the dashboard was built from. Edit here if your CRM uses different labels.)
-  var BAD=["Dead Lead","Archive","Spam","We are not available"];
+  var BAD=["dead lead","archive","spam","we are not available"];
   var bridge=(window.parent&&window.parent.ZTZ_BRIDGE)||window.ZTZ_BRIDGE;
   function msg(t){var s=document.getElementById('subline');if(s)s.textContent=t;}
   function srcLbl(t){var s=document.getElementById('srcFile');if(s)s.textContent=t;}
   if(!bridge){ msg("Open this report from the platform and sign in to load live data."); srcLbl("not signed in"); return; }
   function run(){
     msg("Loading live data from the bridge\u2026"); srcLbl("live bridge \u00b7 moveboard");
-    bridge.rows('moveboard',{limit:50000}).then(function(rows){
+    Promise.all([bridge.get('moveboard',{since:new Date(Date.now()-186*864e5).toISOString().slice(0,10),since_col:'Create Date',limit:40000}),bridge.get('sales_translator',{limit:2000}),bridge.get('source_correction',{limit:2000}),bridge.get('status_translator',{limit:2000})]).then(function(res){
+      ZTZ.setTranslators({sales:(res[1]&&res[1].rows)||[],source:(res[2]&&res[2].rows)||[],status:(res[3]&&res[3].rows)||[]});
+      var d=res[0],rows=d.rows||[];
       var cleaned=cleanRows(rows);
-      ALL_LEADS=cleaned.filter(function(d){return BAD.indexOf(d.status)>=0;});
-      SRC_FILE="live bridge \u00b7 moveboard ("+new Date().toLocaleString()+")";
+      ALL_LEADS=cleaned.filter(function(x){return ZTZ.statusCategory(x.status)==='Bad Lead';});
+      SRC_FILE=((d.truncated||rows.length>=40000)?"⚠ partial · ":"")+"live bridge \u00b7 moveboard ("+new Date().toLocaleString()+")";
       srcLbl(SRC_FILE);
       buildFilterOptions(); render();
     }).catch(function(err){ msg("Could not load live data: "+((err&&err.message)||err)); });
